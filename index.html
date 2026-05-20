@@ -3,6 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#00ff88">
+    <meta name="description" content="Professional browser-based sample slicer and 16-step sequencer with effects chain">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%230a0a0a' width='192' height='192'/><text x='96' y='120' font-family='monospace' font-size='80' font-weight='bold' fill='%2300ff88' text-anchor='middle'>◆</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%230a0a0a' width='192' height='192'/><text x='96' y='120' font-family='monospace' font-size='80' font-weight='bold' fill='%2300ff88' text-anchor='middle'>◆</text></svg>">
     <title>SLICER — Sample Slicer</title>
     <style>
         * {
@@ -812,6 +817,7 @@
                 <span style="font-size: 12px; color: var(--text-secondary);">
                     <span id="sliceCount">0</span> slices
                 </span>
+                <button class="btn" id="recBtn" style="color: #ff3366; border-color: #ff3366;">● REC</button>
                 <button class="btn" id="detectBtn">Auto Detect</button>
                 <button class="btn" id="saveBtn">Save Project</button>
                 <button class="btn" id="loadBtn">Load Project</button>
@@ -1017,7 +1023,14 @@
                 decimator: { bits: 16, mix: 0 },
                 reverb: { mode: 'plate', mix: 0 },
                 bypass: false
-            }
+            },
+            // Recording
+            isRecording: false,
+            mediaRecorder: null,
+            audioChunks: [],
+            recordingAnalyser: null,
+            recordingStream: null,
+            peakLevel: 0
         };
 
         // === TAB SWITCHING ===
@@ -1221,6 +1234,18 @@
         window.addEventListener('resize', drawWaveform);
 
         // === WAVEFORM DRAG EDITING ===
+        function updatePlayingSliceAudio(sliceIdx) {
+            if (!state.playingSources[sliceIdx]) return;
+            
+            const slice = state.slices[sliceIdx];
+            const sourceObj = state.playingSources[sliceIdx];
+            
+            if (sourceObj.mode === 'loop' && sourceObj.source && sourceObj.source.loop) {
+                sourceObj.source.loopStart = slice.start;
+                sourceObj.source.loopEnd = slice.end;
+            }
+        }
+
         canvas.addEventListener('mousedown', (e) => {
             if (!state.audioBuffer) return;
 
@@ -1278,21 +1303,30 @@
         document.addEventListener('mousemove', (e) => {
             if (state.draggingSlice === null || !state.audioBuffer) return;
 
+            const container = document.querySelector('.waveform-container');
             const rect = canvas.getBoundingClientRect();
-            const x = (e.clientX - rect.left) / rect.width;
-            const time = Math.max(0, Math.min(state.audioBuffer.duration, x * state.audioBuffer.duration));
+            
+            // Posição absoluta no canvas considerando scroll
+            const scrollX = container.scrollLeft;
+            const canvasX = e.clientX - rect.left + scrollX;
+            
+            // Converter pixel para tempo de áudio
+            const canvasWidth = canvas.width;
+            const normalizedX = canvasX / canvasWidth;
+            const time = normalizedX * state.audioBuffer.duration;
+            const clampedTime = Math.max(0, Math.min(state.audioBuffer.duration, time));
 
             const slice = state.slices[state.draggingSlice];
 
             if (state.dragMode === 'start') {
-                slice.start = Math.min(time, slice.end - 0.01);
+                slice.start = Math.min(clampedTime, slice.end - 0.01);
             } else if (state.dragMode === 'end') {
-                slice.end = Math.max(time, slice.start + 0.01);
+                slice.end = Math.max(clampedTime, slice.start + 0.01);
             }
 
-            updatePlayingSliceAudio(state.draggingSlice);
             updateSlicesList();
             drawWaveform();
+            updatePlayingSliceAudio(state.draggingSlice);
         });
 
         document.addEventListener('mouseup', () => {
@@ -2323,6 +2357,110 @@
             }
         });
 
+        // === AUDIO RECORDING ===
+        async function startRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const mediaRecorder = new MediaRecorder(stream);
+                const ctx = initAudioContext();
+                const source = ctx.createMediaStreamSource(stream);
+                const analyser = ctx.createAnalyser();
+                analyser.fftSize = 2048;
+                source.connect(analyser);
+                
+                state.audioChunks = [];
+                state.recordingAnalyser = analyser;
+                state.recordingStream = stream;
+                
+                mediaRecorder.ondataavailable = (e) => {
+                    state.audioChunks.push(e.data);
+                };
+                
+                mediaRecorder.onstop = async () => {
+                    state.recordingAnalyser = null;
+                    const audioBlob = new Blob(state.audioChunks, { type: 'audio/wav' });
+                    const arrayBuffer = await audioBlob.arrayBuffer();
+                    const decodeCtx = initAudioContext();
+                    
+                    try {
+                        state.audioBuffer = await decodeCtx.decodeAudioData(arrayBuffer);
+                        updateSampleInfo('recording_' + Date.now() + '.wav');
+                        drawWaveform();
+                        state.slices = [];
+                        updateSlicesList();
+                        initSequencerGrid();
+                        
+                        document.getElementById('recBtn').textContent = '● REC';
+                        document.getElementById('recBtn').style.background = 'var(--bg-control)';
+                    } catch (err) {
+                        console.error('Audio decode error:', err);
+                        alert('Error processing recording');
+                    }
+                };
+                
+                mediaRecorder.start();
+                state.mediaRecorder = mediaRecorder;
+                state.isRecording = true;
+                document.getElementById('recBtn').textContent = '⏹ STOP';
+                document.getElementById('recBtn').style.background = '#ff3366';
+                
+                // Visualização em tempo real
+                visualizeRecording();
+                
+                // Stop recording after 60 seconds max
+                setTimeout(() => {
+                    if (state.isRecording) {
+                        stopRecording();
+                    }
+                }, 60000);
+                
+            } catch (err) {
+                console.error('Microphone access error:', err);
+                alert('Microphone access denied. Please allow microphone access to record.');
+            }
+        }
+        
+        function visualizeRecording() {
+            if (!state.recordingAnalyser || !state.isRecording) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const width = canvas.width || rect.width;
+            const height = canvas.height || rect.height;
+
+            canvas.width = width;
+            canvas.height = height;
+
+            // Retângulo vermelho todo
+            canvasCtx.fillStyle = '#ff3366';
+            canvasCtx.fillRect(0, 0, width, height);
+
+            // Texto "Recording" branco no centro - mesmo tipo/tamanho do título
+            canvasCtx.fillStyle = '#ffffff';
+            canvasCtx.font = 'bold 72px JetBrains Mono';
+            canvasCtx.textAlign = 'center';
+            canvasCtx.textBaseline = 'middle';
+            canvasCtx.letterSpacing = '3px';
+            canvasCtx.fillText('RECORDING', width / 2, height / 2);
+
+            requestAnimationFrame(visualizeRecording);
+        }
+        
+        function stopRecording() {
+            if (state.mediaRecorder && state.isRecording) {
+                state.mediaRecorder.stop();
+                state.mediaRecorder.stream.getTracks().forEach(track => track.stop());
+                state.isRecording = false;
+            }
+        }
+        
+        document.getElementById('recBtn').addEventListener('click', () => {
+            if (state.isRecording) {
+                stopRecording();
+            } else {
+                startRecording();
+            }
+        });
+
         // === INIT ===
         initAudioContext();
         initMIDI();
@@ -2334,6 +2472,31 @@
         window.addEventListener('resize', () => {
             drawWaveform();
             initKeyboard();
+        });
+
+        // === SERVICE WORKER (PWA) ===
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('service-worker.js', { scope: '/' })
+                .then((registration) => {
+                    console.log('Service Worker registered:', registration);
+                })
+                .catch((error) => {
+                    console.log('Service Worker registration not available (normal in preview):', error.message);
+                    // Isto é normal em previews - SW só funciona com HTTPS ou localhost
+                });
+        }
+
+        // PWA Install prompt handling
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            console.log('PWA Install prompt available');
+        });
+
+        window.addEventListener('appinstalled', () => {
+            console.log('PWA installed successfully');
+            deferredPrompt = null;
         });
     </script>
 </body>
