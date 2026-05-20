@@ -34,7 +34,7 @@
 
         .container {
             display: grid;
-            grid-template-rows: 60px 50px 1fr 200px;
+            grid-template-rows: 60px 50px 1fr 240px;
             height: 100vh;
             gap: 0;
         }
@@ -507,7 +507,73 @@
             color: var(--accent);
         }
 
-        /* KEYBOARD CONTROLLER */
+        /* EFFECTS PANEL */
+        .effects-panel {
+            background: var(--bg-panel);
+            border-top: 1px solid var(--border);
+            padding: 10px 15px;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            min-height: 140px;
+            overflow: visible;
+        }
+
+        .effect {
+            background: var(--bg-control);
+            border: 1px solid var(--border);
+            padding: 8px;
+            border-radius: 2px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .effect-title {
+            font-size: 10px;
+            color: var(--accent);
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .effect-control {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .effect-control label {
+            font-size: 8px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        .effect-control input[type="range"] {
+            height: 3px;
+            width: 100%;
+        }
+
+        .effect-control input[type="range"]::-webkit-slider-thumb {
+            width: 10px;
+            height: 10px;
+        }
+
+        .effect-control input[type="range"]::-moz-range-thumb {
+            width: 10px;
+            height: 10px;
+        }
+
+        .effect-value {
+            font-size: 8px;
+            color: var(--accent);
+            text-align: center;
+        }
+
+        .effect.active {
+            border-color: var(--accent);
+            box-shadow: 0 0 8px rgba(0, 255, 136, 0.2);
+        }
         .keyboard {
             background: linear-gradient(to right, var(--bg-panel), var(--bg-dark));
             border-top: 1px solid var(--border);
@@ -841,6 +907,80 @@
             </div>
         </div>
 
+        <!-- EFFECTS PANEL -->
+        <div class="effects-panel">
+            <!-- Compressor -->
+            <div class="effect">
+                <div class="effect-title">Compressor</div>
+                <div class="effect-control">
+                    <label>Ratio</label>
+                    <input type="range" id="compRatio" min="1" max="8" step="0.1" value="1">
+                    <span class="effect-value"><span id="compRatioVal">1</span>:1</span>
+                </div>
+                <div class="effect-control">
+                    <label>Mix</label>
+                    <input type="range" id="compMix" min="0" max="100" step="1" value="0">
+                    <span class="effect-value"><span id="compMixVal">0</span>%</span>
+                </div>
+            </div>
+
+            <!-- Overdrive -->
+            <div class="effect">
+                <div class="effect-title">Overdrive</div>
+                <div class="effect-control">
+                    <label>Drive</label>
+                    <input type="range" id="overDrive" min="0" max="100" step="1" value="0">
+                    <span class="effect-value"><span id="overDriveVal">0</span>%</span>
+                </div>
+                <div class="effect-control">
+                    <label>Mix</label>
+                    <input type="range" id="overMix" min="0" max="100" step="1" value="0">
+                    <span class="effect-value"><span id="overMixVal">0</span>%</span>
+                </div>
+            </div>
+
+            <!-- Decimator -->
+            <div class="effect">
+                <div class="effect-title">Decimator</div>
+                <div class="effect-control">
+                    <label>Bits</label>
+                    <input type="range" id="decimBits" min="2" max="16" step="1" value="16">
+                    <span class="effect-value"><span id="decimBitsVal">16</span>bit</span>
+                </div>
+                <div class="effect-control">
+                    <label>Mix</label>
+                    <input type="range" id="decimMix" min="0" max="100" step="1" value="0">
+                    <span class="effect-value"><span id="decimMixVal">0</span>%</span>
+                </div>
+            </div>
+
+            <!-- Reverb -->
+            <div class="effect">
+                <div class="effect-title">Reverb</div>
+                <div class="effect-control">
+                    <label>Mode</label>
+                    <select id="reverbMode" style="width: 100%; padding: 2px; background: var(--bg-panel); border: 1px solid var(--border); color: var(--text-secondary); font-size: 8px; border-radius: 2px;">
+                        <option value="plate">Plate</option>
+                        <option value="spring">Spring</option>
+                    </select>
+                </div>
+                <div class="effect-control">
+                    <label>Mix</label>
+                    <input type="range" id="reverbMix" min="0" max="100" step="1" value="0">
+                    <span class="effect-value"><span id="reverbMixVal">0</span>%</span>
+                </div>
+            </div>
+
+            <!-- EQ (Bonus) -->
+            <div class="effect">
+                <div class="effect-title">Bypass All</div>
+                <div class="effect-control" style="align-items: center; justify-content: center; flex: 1;">
+                    <input type="checkbox" id="effectsBypass" style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--accent);">
+                </div>
+                <div class="effect-value" style="text-align: center; font-size: 9px;">OFF</div>
+            </div>
+        </div>
+
         <!-- KEYBOARD CONTROLLER -->
         <div class="keyboard" id="keyboard"></div>
     </div>
@@ -869,7 +1009,15 @@
             sequencerPattern: {}, // { sliceIdx: { 0: 'empty'|'trigger'|'flame', 1: ..., ... } }
             sequencerPosition: 0,
             sequencerIntervalId: null,
-            swingAmount: 0 // 0-100%
+            swingAmount: 0, // 0-100%
+            // Effects
+            effects: {
+                compressor: { ratio: 1, mix: 0 },
+                overdrive: { drive: 0, mix: 0 },
+                decimator: { bits: 16, mix: 0 },
+                reverb: { mode: 'plate', mix: 0 },
+                bypass: false
+            }
         };
 
         // === TAB SWITCHING ===
@@ -940,6 +1088,51 @@
 
         document.getElementById('swingSlider').addEventListener('input', (e) => {
             state.swingAmount = parseInt(e.target.value);
+        });
+
+        // === EFFECTS ===
+        document.getElementById('compRatio').addEventListener('input', (e) => {
+            state.effects.compressor.ratio = parseFloat(e.target.value);
+            document.getElementById('compRatioVal').textContent = parseFloat(e.target.value).toFixed(1);
+        });
+
+        document.getElementById('compMix').addEventListener('input', (e) => {
+            state.effects.compressor.mix = parseInt(e.target.value);
+            document.getElementById('compMixVal').textContent = e.target.value;
+        });
+
+        document.getElementById('overDrive').addEventListener('input', (e) => {
+            state.effects.overdrive.drive = parseInt(e.target.value);
+            document.getElementById('overDriveVal').textContent = e.target.value;
+        });
+
+        document.getElementById('overMix').addEventListener('input', (e) => {
+            state.effects.overdrive.mix = parseInt(e.target.value);
+            document.getElementById('overMixVal').textContent = e.target.value;
+        });
+
+        document.getElementById('decimBits').addEventListener('input', (e) => {
+            state.effects.decimator.bits = parseInt(e.target.value);
+            document.getElementById('decimBitsVal').textContent = e.target.value;
+        });
+
+        document.getElementById('decimMix').addEventListener('input', (e) => {
+            state.effects.decimator.mix = parseInt(e.target.value);
+            document.getElementById('decimMixVal').textContent = e.target.value;
+        });
+
+        document.getElementById('reverbMode').addEventListener('change', (e) => {
+            state.effects.reverb.mode = e.target.value;
+        });
+
+        document.getElementById('reverbMix').addEventListener('input', (e) => {
+            state.effects.reverb.mix = parseInt(e.target.value);
+            document.getElementById('reverbMixVal').textContent = e.target.value;
+        });
+
+        document.getElementById('effectsBypass').addEventListener('change', (e) => {
+            state.effects.bypass = e.target.checked;
+            document.querySelector('.effects-panel').style.opacity = e.target.checked ? '0.5' : '1';
         });
 
         // === WAVEFORM RENDERING ===
@@ -1179,10 +1372,16 @@
                 pitch = slice.pitch * Math.pow(2, midiOffset / 12);
             }
 
-            source.buffer = state.audioBuffer;
+            // Aplicar efeitos ao buffer da slice
+            const sliceBuffer = applyEffectsToSlice(sliceIdx);
+            
+            source.buffer = sliceBuffer;
             source.playbackRate.value = pitch;
             
+            const duration = (sliceBuffer.duration || (slice.end - slice.start));
             const fadeInTime = (slice.fadeIn || 1) / 1000;
+            const fadeOutTime = (slice.fadeOut || 50) / 1000;
+            
             gainNode.gain.setValueAtTime(0, ctx.currentTime);
             gainNode.gain.linearRampToValueAtTime(slice.volume * parseFloat(document.getElementById('masterVolume').value), ctx.currentTime + fadeInTime);
             
@@ -1191,15 +1390,12 @@
             source.connect(gainNode);
             gainNode.connect(panNode);
             panNode.connect(ctx.destination);
-
-            const duration = slice.end - slice.start;
-            const fadeOutTime = (slice.fadeOut || 50) / 1000;
             
             if (slice.mode === 'loop') {
                 source.loop = true;
-                source.loopStart = slice.start;
-                source.loopEnd = slice.end;
-                source.start(ctx.currentTime, slice.start);
+                source.loopStart = 0;
+                source.loopEnd = sliceBuffer.duration;
+                source.start(ctx.currentTime, 0);
                 
                 state.playingSources[sliceIdx] = { 
                     source, 
@@ -1210,7 +1406,7 @@
                     sliceIdx: sliceIdx
                 };
             } else { // shot
-                source.start(ctx.currentTime, slice.start, duration);
+                source.start(ctx.currentTime, 0, duration);
                 state.playingSources[sliceIdx] = { 
                     source, 
                     gainNode, 
@@ -1244,6 +1440,49 @@
             }
         }
 
+        function applyEffectsToSlice(sliceIdx) {
+            const slice = state.slices[sliceIdx];
+            const startSample = Math.floor(slice.start * state.audioBuffer.sampleRate);
+            const endSample = Math.ceil(slice.end * state.audioBuffer.sampleRate);
+            
+            const ctx = initAudioContext();
+            const rawData = state.audioBuffer.getChannelData(0);
+            let audioData = [];
+            
+            for (let i = startSample; i < endSample; i++) {
+                audioData.push(rawData[i] || 0);
+            }
+
+            // Apply effects chain
+            if (!state.effects.bypass) {
+                // 1. Compressor
+                if (state.effects.compressor.mix > 0) {
+                    audioData = applyCompressor(audioData, state.effects.compressor.ratio, state.effects.compressor.mix);
+                }
+
+                // 2. Overdrive
+                if (state.effects.overdrive.mix > 0) {
+                    audioData = applyOverdrive(audioData, state.effects.overdrive.drive, state.effects.overdrive.mix);
+                }
+
+                // 3. Decimator
+                if (state.effects.decimator.mix > 0) {
+                    audioData = applyDecimator(audioData, state.effects.decimator.bits, state.effects.decimator.mix);
+                }
+
+                // 4. Reverb
+                if (state.effects.reverb.mix > 0) {
+                    audioData = applyReverb(audioData, state.effects.reverb.mode, state.effects.reverb.mix);
+                }
+            }
+
+            // Create new buffer from processed data
+            const newBuffer = ctx.createBuffer(1, audioData.length, state.audioBuffer.sampleRate);
+            newBuffer.getChannelData(0).set(audioData);
+            
+            return newBuffer;
+        }
+
         function stopSlice(sliceIdx) {
             if (state.playingSources[sliceIdx]) {
                 try {
@@ -1266,15 +1505,117 @@
             }
         }
 
-        function updatePlayingSliceAudio(sliceIdx) {
+        // === EFFECTS PROCESSING ===
+        function applyEffects(audioData) {
+            if (state.effects.bypass) return audioData;
+
+            let data = [...audioData];
+
+            // 1. Compressor (primeiro na chain)
+            if (state.effects.compressor.mix > 0) {
+                data = applyCompressor(data, state.effects.compressor.ratio, state.effects.compressor.mix);
+            }
+
+            // 2. Overdrive
+            if (state.effects.overdrive.mix > 0) {
+                data = applyOverdrive(data, state.effects.overdrive.drive, state.effects.overdrive.mix);
+            }
+
+            // 3. Decimator
+            if (state.effects.decimator.mix > 0) {
+                data = applyDecimator(data, state.effects.decimator.bits, state.effects.decimator.mix);
+            }
+
+            // 4. Reverb
+            if (state.effects.reverb.mix > 0) {
+                data = applyReverb(data, state.effects.reverb.mode, state.effects.reverb.mix);
+            }
+
+            return data;
+        }
+
+        function applyCompressor(data, ratio, mix) {
+            const threshold = 0.3;
+            const processed = data.map(sample => {
+                if (Math.abs(sample) > threshold) {
+                    const sign = sample > 0 ? 1 : -1;
+                    const compressed = threshold + (Math.abs(sample) - threshold) / ratio;
+                    return sign * compressed;
+                }
+                return sample;
+            });
+
+            return data.map((orig, i) => orig * (1 - mix / 100) + processed[i] * (mix / 100));
+        }
+
+        function applyOverdrive(data, drive, mix) {
+            const driveAmount = 1 + (drive / 100) * 10;
+            const processed = data.map(sample => {
+                const driven = sample * driveAmount;
+                return Math.tanh(driven);
+            });
+
+            return data.map((orig, i) => orig * (1 - mix / 100) + processed[i] * (mix / 100));
+        }
+
+        function applyDecimator(data, bits, mix) {
+            const levels = Math.pow(2, bits);
+            const processed = data.map(sample => {
+                const quantized = Math.round(sample * levels) / levels;
+                return quantized;
+            });
+
+            return data.map((orig, i) => orig * (1 - mix / 100) + processed[i] * (mix / 100));
+        }
+
+        function applyReverb(data, mode, mix) {
+            const delayTime = mode === 'plate' ? 0.04 : 0.06;
+            const decayRate = mode === 'plate' ? 0.4 : 0.35;
+            const numDelays = mode === 'plate' ? 4 : 3;
+            
+            const sampleRate = state.audioBuffer.sampleRate;
+            const delaySamples = Math.floor(delayTime * sampleRate);
+            
+            let output = [...data];
+            
+            for (let d = 0; d < numDelays; d++) {
+                const delay = delaySamples * (d + 1);
+                const decay = Math.pow(decayRate, d + 1);
+                
+                for (let i = delay; i < data.length; i++) {
+                    output[i] += data[i - delay] * decay;
+                }
+            }
+
+            const maxVal = Math.max(...output.map(Math.abs));
+            if (maxVal > 1) {
+                output = output.map(s => s / maxVal);
+            }
+
+            return data.map((orig, i) => orig * (1 - mix / 100) + output[i] * (mix / 100));
+        }
+
+        function stopSlice(sliceIdx) {
             if (!state.playingSources[sliceIdx]) return;
-
-            const slice = state.slices[sliceIdx];
+            
             const sourceObj = state.playingSources[sliceIdx];
-
-            if (slice.mode === 'loop' && sourceObj.source.loop) {
-                sourceObj.source.loopStart = slice.start;
-                sourceObj.source.loopEnd = slice.end;
+            const slice = state.slices[sliceIdx];
+            
+            if (sourceObj && sourceObj.gainNode) {
+                const fadeOutTime = (slice.fadeOut || 50) / 1000;
+                sourceObj.gainNode.gain.setValueAtTime(sourceObj.gainNode.gain.value, state.audioContext.currentTime);
+                sourceObj.gainNode.gain.linearRampToValueAtTime(0, state.audioContext.currentTime + fadeOutTime);
+                
+                if (sourceObj.source) {
+                    sourceObj.source.stop(state.audioContext.currentTime + fadeOutTime);
+                }
+            }
+            
+            delete state.playingSources[sliceIdx];
+            
+            const key = document.querySelector(`[data-slice="${sliceIdx}"]`);
+            if (key) {
+                key.classList.remove('active');
             }
         }
 
@@ -1429,8 +1770,9 @@
         // === KEYBOARD EVENTS ===
         document.addEventListener('keydown', (e) => {
             const keyIdx = state.keyBindings.indexOf(e.key.toUpperCase());
-            if (keyIdx !== -1 && keyIdx < state.slices.length && state.slices[keyIdx].enabled) {
-                if (!state.pressedKeys[keyIdx]) {
+            if (keyIdx !== -1 && keyIdx < state.slices.length) {
+                const slice = state.slices[keyIdx];
+                if (slice && slice.enabled && !state.pressedKeys[keyIdx]) {
                     state.pressedKeys[keyIdx] = true;
                     playSlice(keyIdx);
                 }
@@ -1583,6 +1925,8 @@
                         stepBtn.classList.add('playing');
                     }
 
+                    if (!state.sequencerPattern[sliceIdx]) return;
+                    
                     const stepState = state.sequencerPattern[sliceIdx][state.sequencerPosition];
                     
                     if (stepState === 'trigger') {
@@ -1666,10 +2010,11 @@
 
             // Render
             offlineCtx.startRendering().then((renderedBuffer) => {
-                const wav = encodeWavFile(
-                    Array.from(renderedBuffer.getChannelData(0)),
-                    sampleRate
-                );
+                // Apply effects to rendered buffer
+                let audioData = Array.from(renderedBuffer.getChannelData(0));
+                audioData = applyEffects(audioData);
+
+                const wav = encodeWavFile(audioData, sampleRate);
 
                 const audioFileName = document.getElementById('fileName').textContent.split('.')[0];
                 const filename = `${audioFileName}_sequencer_loop.wav`;
@@ -1806,7 +2151,22 @@
             const audioFileName = document.getElementById('fileName').textContent.split('.')[0];
             const filename = `${audioFileName}_slice_${sliceIdx}.wav`;
 
-            const wav = encodeWAV(state.audioBuffer, slice.start, slice.end);
+            const sampleRate = state.audioBuffer.sampleRate;
+            const startSample = Math.floor(slice.start * sampleRate);
+            const endSample = Math.ceil(slice.end * sampleRate);
+            const sliceLength = endSample - startSample;
+
+            const rawData = state.audioBuffer.getChannelData(0);
+            let audioData = [];
+            
+            for (let i = 0; i < sliceLength; i++) {
+                audioData.push(rawData[startSample + i] * 0.8);
+            }
+
+            // Apply effects
+            audioData = applyEffects(audioData);
+
+            const wav = encodeWavFile(audioData, sampleRate);
             downloadWAV(wav, filename);
         }
 
@@ -1867,12 +2227,12 @@
                     fadeIn: s.fadeIn,
                     fadeOut: s.fadeOut
                 })),
-                sequencerPattern: state.sequencerPattern
+                sequencerPattern: state.sequencerPattern,
+                effects: state.effects
             };
 
             zip.file('project.json', JSON.stringify(projectData, null, 2));
 
-            // Generate and download ZIP
             const content = await zip.generateAsync({ type: 'blob' });
             const url = URL.createObjectURL(content);
             const a = document.createElement('a');
@@ -1895,11 +2255,9 @@
             try {
                 const zip = await JSZip.loadAsync(file);
                 
-                // Load project metadata
                 const projectJson = await zip.file('project.json').async('string');
                 const projectData = JSON.parse(projectJson);
 
-                // Load audio file
                 const audioFiles = Object.keys(zip.files).filter(f => f.startsWith('audio.'));
                 if (audioFiles.length === 0) {
                     alert('No audio file found in project');
@@ -1911,7 +2269,6 @@
                 const ctx = initAudioContext();
                 state.audioBuffer = await ctx.decodeAudioData(arrayBuffer);
 
-                // Restore project data
                 document.getElementById('fileName').textContent = projectData.audioFileName;
                 document.getElementById('duration').textContent = state.audioBuffer.duration.toFixed(2);
                 document.getElementById('sampleRate').textContent = (state.audioBuffer.sampleRate / 1000).toFixed(0) + 'k';
@@ -1921,10 +2278,38 @@
                 state.swingAmount = projectData.swingAmount;
                 state.slices = projectData.slices;
                 state.sequencerPattern = projectData.sequencerPattern;
+                
+                // Restore effects if they exist in the project
+                if (projectData.effects) {
+                    state.effects = projectData.effects;
+                }
 
                 // Update UI
                 document.getElementById('bpmInput').value = state.bpm;
                 document.getElementById('swingSlider').value = state.swingAmount;
+                
+                // Restore effects UI
+                document.getElementById('compRatio').value = state.effects.compressor.ratio;
+                document.getElementById('compRatioVal').textContent = state.effects.compressor.ratio.toFixed(1);
+                document.getElementById('compMix').value = state.effects.compressor.mix;
+                document.getElementById('compMixVal').textContent = state.effects.compressor.mix;
+                
+                document.getElementById('overDrive').value = state.effects.overdrive.drive;
+                document.getElementById('overDriveVal').textContent = state.effects.overdrive.drive;
+                document.getElementById('overMix').value = state.effects.overdrive.mix;
+                document.getElementById('overMixVal').textContent = state.effects.overdrive.mix;
+                
+                document.getElementById('decimBits').value = state.effects.decimator.bits;
+                document.getElementById('decimBitsVal').textContent = state.effects.decimator.bits;
+                document.getElementById('decimMix').value = state.effects.decimator.mix;
+                document.getElementById('decimMixVal').textContent = state.effects.decimator.mix;
+                
+                document.getElementById('reverbMode').value = state.effects.reverb.mode;
+                document.getElementById('reverbMix').value = state.effects.reverb.mix;
+                document.getElementById('reverbMixVal').textContent = state.effects.reverb.mix;
+                
+                document.getElementById('effectsBypass').checked = state.effects.bypass;
+                document.querySelector('.effects-panel').style.opacity = state.effects.bypass ? '0.5' : '1';
                 
                 updateSlicesList();
                 initSequencerGrid();

@@ -1,8 +1,8 @@
 # ◆ SLICER — Sample Slicer & Sequencer
 
-A powerful, browser-based sample slicer and 16-step sequencer with real-time waveform editing, MIDI support, and advanced sequencing features.
+A powerful, browser-based sample slicer and 16-step sequencer with real-time waveform editing, MIDI support, integrated effects chain, and advanced sequencing features.
 
-**Status**: Open Source | **License**: MIT  
+**Status**: Production Ready | **Version**: 2.0 | **License**: MIT  
 **Created**: 2024 | **Design & Development**: David Marques with Anthropic Claude (Vibe Coding)
 
 ---
@@ -19,11 +19,12 @@ SLICER is a professional-grade sample manipulation tool designed for musicians, 
 - **Per-Slice Control** — Independent pitch, volume, pan, and fade in/out
 - **16-Step Sequencer** — Roland TR-style grid with flame repeats and swing
 - **Flame Repeats** — 4x 16th-note repeats for dense, glitchy textures
-- **Swing Control** — Volca Sample-style swing for humanized timing
+- **Swing Control** — Volka Sample-style swing for humanized timing
 - **Real-Time Zoom** — Horizontal stretching with automatic scroll for detailed editing
 - **Dynamic Waveform** — Visual amplitude changes with master volume
+- **Effects Chain** — 5 integrated processors (Compressor, Overdrive, Decimator, Reverb) with real-time processing
 - **Multi-Output Export** — Individual slices or complete sequencer loop as WAV
-- **Project Save/Load** — ZIP-based project files with audio + metadata
+- **Project Save/Load** — ZIP-based project files with audio + metadata + effects settings
 - **MIDI Support** — Full MIDI note on/off with pitch transposition
 - **Keyboard Control** — 16 assignable keys (Q-P, A-H) for triggering
 - **Tab Interface** — Seamless switching between Editor and Sequencer views
@@ -218,7 +219,92 @@ A complete example project is included: **`example-project.zip`**
 
 ---
 
-## 📤 Export
+## 🎛️ Effects Chain (V2)
+
+SLICER V2 inclui uma **effects chain profissional** com 5 processadores integrados aplicados em tempo real.
+
+### Effects Overview
+
+**Chain Order**: Compressor → Overdrive → Decimator → Reverb  
+**Master Control**: Bypass All (desativa toda a chain)
+
+#### **1. Compressor**
+- **Ratio**: 1:1 - 8:1 (soft-knee compression)
+- **Mix**: 0-100% (wet/dry blend)
+- Controla dinâmica com suavidade
+- Perfeito para equilibrar slices com volumes inconsistentes
+
+#### **2. Overdrive** (Saturação)
+- **Drive**: 0-100% (quantidade de distorção)
+- **Mix**: 0-100% (wet/dry blend)
+- Soft saturation com tanh waveshaping (natural, não áspero)
+- Ideal para warmth, grit, e efeitos sónicos
+
+#### **3. Decimator** (Bitrate Reduction)
+- **Bits**: 2bit - 16bit (qualidade descendente)
+- **Mix**: 0-100% (wet/dry blend)
+- Quantização de amplitude em tempo real
+- Perfeito para lo-fi, glitch, efeitos 8-bit, e IDM
+
+#### **4. Reverb** (Espaço)
+- **Mode**: 
+  - **Plate**: Reverb curto (40ms), metal-like, brilhante
+  - **Spring**: Reverb médio (60ms), vintage, warm
+- **Mix**: 0-100% (wet/dry blend)
+- Multi-tap reverb com decay natural
+
+#### **5. Bypass All**
+- Checkbox master para desativar toda a chain
+- Útil para A/B testing direto vs. efeitos
+- UI feedback visual (opacidade reduzida)
+
+### Effects Workflow
+
+**Real-time Processing**:
+- Efeitos são aplicados ao vivo durante playback (teclado e sequencer)
+- Ajusta sliders enquanto está a tocar para feedback instantâneo
+- Efeitos aplicados automaticamente a cada slice
+
+**Per-Slice Processing**:
+- Cada slice é processada individualmente com a effects chain
+- Efeitos globais = aplicados a todas as slices
+- Não há efeitos per-slice (apenas globais)
+
+**Export with Effects**:
+- Ao exportar sequencer loop, efeitos são incluídos
+- Ao exportar slices individuais, efeitos são aplicados
+- WAV final contém todo o processamento
+
+### Effects Persistence
+
+**Save/Load Project**:
+- Todas as settings dos efeitos são gravadas no ZIP
+- Ao carregar um projeto, efeitos são restaurados exatamente como estavam
+- UI atualiza automaticamente com os valores salvos
+
+**Project JSON Structure**:
+```json
+{
+  "effects": {
+    "compressor": { "ratio": 4.5, "mix": 75 },
+    "overdrive": { "drive": 50, "mix": 60 },
+    "decimator": { "bits": 8, "mix": 40 },
+    "reverb": { "mode": "plate", "mix": 35 },
+    "bypass": false
+  }
+}
+```
+
+### Tips & Tricks
+
+- **Compressor First**: Estabiliza dinâmica antes de outros efeitos
+- **Decimator Subtly**: 0.5x-1x mix para texture, não destruction
+- **Reverb Mixing**: 20-40% para natural, 60%+ para cinematic
+- **A/B Testing**: Use bypass para comparar direto vs. efeitos
+- **Layering**: Combine overdrive + decimator para bit-crushing único
+- **Grain Texture**: Decimator + Reverb para granular-like effects
+
+---
 
 ### Export Individual Slices
 
@@ -269,20 +355,23 @@ This includes:
 ## 🛠️ Technical Stack
 
 - **Language**: Vanilla JavaScript (ES6+)
-- **Audio**: Web Audio API
-- **UI**: HTML5 Canvas, CSS Grid
+- **Audio**: Web Audio API with OfflineAudioContext for effects processing
+- **UI**: HTML5 Canvas, CSS Grid, responsive design
 - **Libraries**:
   - [JSZip](https://stuk.github.io/jszip/) — Project save/load (ZIP compression)
 - **MIDI**: Web MIDI API (when available)
+- **Effects Processing**: Real-time DSP (Compressor, Saturator, Decimator, Reverb)
 
 ### Browser Compatibility
 
 | Feature | Chrome | Firefox | Safari | Edge |
 |---------|--------|---------|--------|------|
 | Web Audio API | ✅ | ✅ | ✅ | ✅ |
+| Effects Chain | ✅ | ✅ | ✅ | ✅ |
 | Web MIDI API | ✅ | ⚠️ | ❌ | ✅ |
 | Canvas | ✅ | ✅ | ✅ | ✅ |
 | Offline Context | ✅ | ✅ | ✅ | ✅ |
+| ZIP Save/Load | ✅ | ✅ | ✅ | ✅ |
 
 ⚠️ Firefox: MIDI may require manual enabling  
 ❌ Safari: MIDI not supported (keyboard still works)
@@ -291,44 +380,36 @@ This includes:
 
 ## 🎓 Workflow Examples
 
-### Drum Breaking
+### Lo-Fi Sampling
 
-1. Load a drum loop
-2. **Auto Detect** to find kick, snare, hi-hat hits
-3. Each drum element becomes a slice
-4. Set **SHOT** mode for fast retriggers
-5. Use **Flame** for stuttering effects
-6. Sequencer: Create polyrhythmic patterns with different slices
-7. Export loop for layering in your DAW
+1. Load a drum break or vinyl recording
+2. **Auto Detect** to find hits
+3. Set **Decimator** to 6-8 bits (40-80% mix) for vintage crunch
+4. Add **Reverb** (Plate, 20%) for space
+5. Overdrive lightly (10-20%) for warmth
+6. Sequencer: Create lo-fi pattern with swing (30-40%)
+7. Export loop with effects baked in
 
-### Granular Synthesis
+### Glitch/IDm Production
 
-1. Load any sound (vocal, ambient, field recording)
-2. Create many small slices (use high sensitivity)
-3. Set **LOOP** mode
-4. Reduce **Fade In/Out** for smooth granular transitions
-5. Pitch each grain differently
-6. Sequencer: Create glitchy textures with flame repeats
-7. Add **Swing** for evolving, non-repetitive motion
+1. Load melodic or textural sample
+2. Create many micro-slices (high transient sensitivity)
+3. **Decimator** to 2-4 bits with high mix (70-100%) for extreme crunch
+4. **Reverb** (Spring, 50%) for wet, disorienting space
+5. Sequencer: Heavy use of **Flame** on multiple steps
+6. Add swing for unpredictability
+7. Export and layer in DAW with other synths
 
-### Melodic Sampler
-
-1. Load a melodic phrase (bassline, vocal melody)
-2. Slice at key intervals (notes, words)
-3. Set different **Pitch** for each slice (C, D, E, F, G, etc.)
-4. Assign to keyboard
-5. Play melodies in real-time
-6. Use MIDI controller for expressive control
-
-### Breakcore Production
+### Breakbeat Manipulation
 
 1. Load breakbeat
-2. **Auto Detect** to fragment into many micro-slices
-3. Add heavy **Flame** on most sequencer steps
-4. Maximize **Swing** (80-100%)
-5. Lower **Fade In/Out** for sharp attacks
-6. Randomize slice pitch offsets (0.8x - 1.3x)
-7. Export and layer with synths
+2. **Auto Detect** with medium sensitivity
+3. **Compressor** (4:1 ratio, 80% mix) to glue everything
+4. **Overdrive** (30% drive, 40% mix) for cohesion
+5. **Reverb** (Plate, 15%) for subtle space
+6. Sequencer: Stutter using **Flame** on kick hits
+7. Fine-tune swing for pocket feel
+8. Export and use as drum pattern in arrangement
 
 ---
 
@@ -348,10 +429,23 @@ This includes:
 ## 🐛 Known Limitations
 
 - **Audio Length**: Limited by available RAM (typically 10+ minutes depending on browser)
-- **Offline Export**: Uses OfflineAudioContext (may be slow for long loops on low-end devices)
+- **Effects Performance**: Heavy effects chains (high mix values) may impact performance on low-end devices
+- **Offline Export**: OfflineAudioContext processing can be slow for long loops on older machines
 - **MIDI**: Not available in Safari; keyboard fallback always works
 - **Format Support**: Depends on browser's audio codec support
-- **Grid Size**: Sequencer is fixed at 16 steps (common standard)
+- **Grid Size**: Sequencer is fixed at 16 steps (industry standard)
+- **Per-Slice Effects**: Effects are global; no per-slice effect chains (by design for simplicity)
+
+## 🚀 Future Enhancements
+
+Potential features for future versions:
+- Pattern chaining (multi-bar sequences)
+- Advanced time-stretching algorithms
+- Per-slice effects
+- MIDI learn for effects parameters
+- Undo/redo
+- Cloud project sync
+- Touch/gestures support
 
 ---
 
@@ -389,5 +483,5 @@ Whether you're building breakbeats, creating granular textures, or exploring sou
 
 ---
 
-*Last Updated: January 2025*  
-*Version: 1.0 Release*
+*Last Updated: May 2026*  
+*Version: 2.0 (Effects Chain Release)*
