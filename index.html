@@ -1,0 +1,1955 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SLICER — Sample Slicer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-dark: #0a0a0a;
+            --bg-panel: #121212;
+            --bg-control: #1a1a1a;
+            --accent: #00ff88;
+            --accent-dim: #00cc6a;
+            --text-primary: #ffffff;
+            --text-secondary: #888888;
+            --border: #222222;
+            --danger: #ff3366;
+            --grid-color: #1a1a1a;
+        }
+
+        body {
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .container {
+            display: grid;
+            grid-template-rows: 60px 50px 1fr 200px;
+            height: 100vh;
+            gap: 0;
+        }
+
+        /* HEADER */
+        header {
+            background: linear-gradient(to right, var(--bg-panel), var(--bg-dark));
+            border-bottom: 2px solid var(--accent);
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 20px rgba(0, 255, 136, 0.1);
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--accent);
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .btn {
+            background: var(--bg-control);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 8px 16px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s ease;
+            border-radius: 2px;
+        }
+
+        .btn:hover {
+            background: var(--accent);
+            color: var(--bg-dark);
+            border-color: var(--accent);
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.4);
+        }
+
+        .btn.danger {
+            color: var(--danger);
+            border-color: var(--danger);
+        }
+
+        .btn.danger:hover {
+            background: var(--danger);
+            color: var(--bg-dark);
+        }
+
+        /* TABS */
+        .tabs-nav {
+            display: flex;
+            background: var(--bg-panel);
+            border-bottom: 1px solid var(--border);
+            gap: 0;
+            height: 50px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 0;
+            background: var(--bg-panel);
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: var(--text-primary);
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+
+        .tab-btn:nth-child(1) {
+            background: #00aaaa; /* CGA Cyan */
+            color: #000000;
+        }
+
+        .tab-btn:nth-child(1):hover {
+            background: #00ffff;
+        }
+
+        .tab-btn:nth-child(1).active {
+            background: #00ffff;
+            color: #000000;
+            border-bottom-color: #000000;
+        }
+
+        .tab-btn:nth-child(2) {
+            background: #aa00aa; /* CGA Magenta */
+            color: #ffffff;
+        }
+
+        .tab-btn:nth-child(2):hover {
+            background: #ff00ff;
+        }
+
+        .tab-btn:nth-child(2).active {
+            background: #ff00ff;
+            color: #000000;
+            border-bottom-color: #000000;
+        }
+
+        .tabs-content {
+            display: none;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .tabs-content.active {
+            display: grid;
+        }
+
+        /* MAIN CONTENT */
+        .main {
+            display: grid;
+            grid-template-columns: 250px 1fr 300px;
+            gap: 0;
+            overflow: hidden;
+        }
+
+        /* SAMPLE BROWSER */
+        .sidebar-left {
+            background: var(--bg-panel);
+            border-right: 1px solid var(--border);
+            overflow-y: auto;
+            padding: 15px;
+        }
+
+        .sidebar-section {
+            margin-bottom: 25px;
+        }
+
+        .sidebar-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--accent);
+            margin-bottom: 10px;
+            opacity: 0.7;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            cursor: pointer;
+        }
+
+        #audioFile {
+            display: none;
+        }
+
+        .file-label {
+            display: block;
+            background: var(--bg-control);
+            border: 1px dashed var(--accent);
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 2px;
+        }
+
+        .file-label:hover {
+            background: rgba(0, 255, 136, 0.05);
+            border-color: var(--accent);
+        }
+
+        .file-label small {
+            display: block;
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        .sample-info {
+            background: var(--bg-control);
+            border: 1px solid var(--border);
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 11px;
+            border-radius: 2px;
+        }
+
+        .sample-info div {
+            margin: 5px 0;
+        }
+
+        .label {
+            color: var(--text-secondary);
+            display: inline-block;
+            min-width: 50px;
+        }
+
+        /* WAVEFORM EDITOR */
+        .editor {
+            background: linear-gradient(180deg, var(--bg-dark) 0%, #0f0f0f 100%);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            gap: 10px;
+            overflow-y: auto;
+        }
+
+        .waveform-container {
+            flex: 1;
+            background: var(--bg-control);
+            border: 1px solid var(--border);
+            border-radius: 2px;
+            position: relative;
+            overflow: hidden;
+            cursor: crosshair;
+            min-height: 200px;
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
+
+        canvas {
+            display: block;
+            height: 100%;
+            min-width: 100%;
+        }
+
+        .controls-bar {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .control-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .control-group label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            align-self: center;
+            min-width: 80px;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            height: 4px;
+            border-radius: 2px;
+            background: var(--grid-color);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(0, 255, 136, 0.5);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 8px rgba(0, 255, 136, 0.5);
+        }
+
+        /* SLICES LIST */
+        .sidebar-right {
+            background: var(--bg-panel);
+            border-left: 1px solid var(--border);
+            overflow-y: auto;
+            padding: 15px;
+        }
+
+        .slice-item {
+            background: var(--bg-control);
+            border: 1px solid var(--border);
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 2px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .slice-item:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.2);
+        }
+
+        .slice-item.active {
+            background: rgba(0, 255, 136, 0.1);
+            border-color: var(--accent);
+            box-shadow: inset 0 0 10px rgba(0, 255, 136, 0.1);
+        }
+
+        .slice-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .slice-name {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .slice-key {
+            font-size: 10px;
+            background: var(--bg-panel);
+            padding: 2px 6px;
+            border-radius: 2px;
+            color: var(--text-secondary);
+        }
+
+        .slice-controls {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 8px;
+        }
+
+        .slice-btn-play {
+            flex: 1;
+            padding: 6px;
+            background: rgba(0, 255, 136, 0.2);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            font-size: 9px;
+            cursor: pointer;
+            border-radius: 2px;
+            transition: all 0.2s ease;
+            font-weight: 600;
+        }
+
+        .slice-btn-play:hover {
+            background: var(--accent);
+            color: var(--bg-dark);
+        }
+
+        .slice-btn-play.playing {
+            animation: pulse-btn 0.5s infinite;
+        }
+
+        @keyframes pulse-btn {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .slice-params {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 6px;
+            font-size: 10px;
+        }
+
+        .param-slider {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .param-slider label {
+            min-width: 40px;
+            color: var(--text-secondary);
+        }
+
+        .param-slider input {
+            flex: 1;
+            height: 3px;
+        }
+
+        .param-value {
+            min-width: 30px;
+            text-align: right;
+            color: var(--accent);
+            font-size: 9px;
+        }
+
+        .slice-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+            font-size: 10px;
+            color: var(--text-secondary);
+        }
+
+        .slice-checkbox input {
+            cursor: pointer;
+            width: 14px;
+            height: 14px;
+            accent-color: var(--accent);
+        }
+
+        .slice-mode {
+            display: flex;
+            gap: 4px;
+            margin-top: 8px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 4px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-size: 9px;
+            cursor: pointer;
+            border-radius: 2px;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .mode-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .mode-btn.active {
+            background: var(--accent);
+            color: var(--bg-dark);
+            border-color: var(--accent);
+        }
+
+        .slice-actions {
+            display: flex;
+            gap: 4px;
+            margin-top: 8px;
+        }
+
+        .slice-actions button {
+            flex: 1;
+            padding: 4px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-size: 9px;
+            cursor: pointer;
+            border-radius: 2px;
+            transition: all 0.2s ease;
+        }
+
+        .slice-actions button:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        /* KEYBOARD CONTROLLER */
+        .keyboard {
+            background: linear-gradient(to right, var(--bg-panel), var(--bg-dark));
+            border-top: 1px solid var(--border);
+            padding: 15px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(45px, 1fr));
+            gap: 8px;
+            overflow-y: auto;
+        }
+
+        .key {
+            background: var(--bg-control);
+            border: 2px solid var(--border);
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.15s ease;
+            font-size: 12px;
+            font-weight: 600;
+            user-select: none;
+            min-height: 50px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #cccccc;
+        }
+
+        .key small {
+            display: block;
+            font-size: 9px;
+            color: #aaaaaa;
+            margin-top: 4px;
+        }
+
+        .key:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.2);
+        }
+
+        .key.active {
+            background: var(--accent);
+            color: var(--bg-dark);
+            border-color: var(--accent);
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.6), inset 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .key.disabled-key {
+            opacity: 0.3;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        /* MIDI INDICATOR */
+        .midi-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            z-index: 100;
+        }
+
+        .midi-indicator.connected {
+            color: var(--accent);
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+        }
+
+        /* STEP SEQUENCER */
+        .sequencer-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            padding: 15px;
+            gap: 15px;
+            overflow-y: auto;
+        }
+
+        .sequencer-header {
+            display: grid;
+            grid-template-columns: 80px 1fr 100px;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .swing-control {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .swing-control label {
+            font-size: 10px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        .swing-control input {
+            width: 100%;
+            height: 4px;
+            border-radius: 2px;
+            background: var(--grid-color);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .swing-control input::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(0, 255, 136, 0.5);
+        }
+
+        .swing-control input::-moz-range-thumb {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 8px rgba(0, 255, 136, 0.5);
+        }
+
+        .sequencer-play {
+            display: flex;
+            gap: 5px;
+        }
+
+        .sequencer-play button {
+            flex: 1;
+            padding: 8px;
+            background: rgba(0, 255, 136, 0.2);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            cursor: pointer;
+            border-radius: 2px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .sequencer-play button:hover {
+            background: var(--accent);
+            color: var(--bg-dark);
+        }
+
+        .sequencer-play button.active {
+            background: var(--accent);
+            color: var(--bg-dark);
+        }
+
+        .sequencer-grid {
+            background: var(--bg-control);
+            border: 1px solid var(--border);
+            border-radius: 2px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .sequencer-row {
+            display: grid;
+            grid-template-columns: 80px repeat(16, 1fr);
+            gap: 4px;
+            align-items: center;
+        }
+
+        .sequencer-label {
+            font-size: 10px;
+            color: var(--accent);
+            font-weight: 600;
+            text-transform: uppercase;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .sequencer-step {
+            aspect-ratio: 1;
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            border-radius: 2px;
+            transition: all 0.1s ease;
+            min-width: 30px;
+        }
+
+        .sequencer-step:hover {
+            border-color: var(--accent);
+        }
+
+        .sequencer-step.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+
+        .sequencer-step.playing {
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.8), inset 0 0 5px rgba(0, 255, 136, 0.5);
+        }
+
+        /* SCROLLBAR */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-control);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--accent);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-dim);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- HEADER -->
+        <header>
+            <div class="header-title">◆ SLICER</div>
+            <div class="header-controls">
+                <span style="font-size: 12px; color: var(--text-secondary);">
+                    <span id="sliceCount">0</span> slices
+                </span>
+                <button class="btn" id="detectBtn">Auto Detect</button>
+                <button class="btn" id="saveBtn">Save Project</button>
+                <button class="btn" id="loadBtn">Load Project</button>
+                <button class="btn" id="exportBtn">Export WAV</button>
+                <button class="btn" id="clearBtn">Clear</button>
+                <input type="file" id="projectFile" accept=".zip" style="display: none;">
+            </div>
+        </header>
+
+        <!-- TABS -->
+        <div class="tabs-nav">
+            <button class="tab-btn active" data-tab="editor">Editor</button>
+            <button class="tab-btn" data-tab="sequencer">Sequencer</button>
+        </div>
+
+        <!-- EDITOR TAB -->
+        <div id="editor-tab" class="tabs-content active" style="grid-template-columns: 250px 1fr 300px;">
+            <!-- SIDEBAR LEFT: Sample Browser -->
+            <div class="sidebar-left">
+                <div class="sidebar-section">
+                    <div class="sidebar-title">Audio File</div>
+                    <div class="file-input-wrapper">
+                        <input type="file" id="audioFile" accept="audio/*">
+                        <label for="audioFile" class="file-label">
+                            <strong>+</strong>
+                            <small>Load sample</small>
+                        </label>
+                    </div>
+                    <div id="sampleInfo" class="sample-info" style="display: none;">
+                        <div><span class="label">File:</span> <span id="fileName">-</span></div>
+                        <div><span class="label">Duration:</span> <span id="duration">-</span>s</div>
+                        <div><span class="label">Sample Rate:</span> <span id="sampleRate">-</span>Hz</div>
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <div class="sidebar-title">Transient Sensitivity</div>
+                    <div class="control-group">
+                        <input type="range" id="sensitivity" min="0.1" max="1" step="0.05" value="0.5" style="width: 100%;">
+                    </div>
+                    <div style="text-align: center; font-size: 11px; color: var(--accent); margin-top: 8px;">
+                        <span id="sensitivityValue">50%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- EDITOR: Waveform + Slices -->
+            <div class="editor">
+                <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px;">Waveform</div>
+                <div class="waveform-container">
+                    <canvas id="waveform"></canvas>
+                </div>
+                <div class="controls-bar">
+                    <div class="control-group">
+                        <label>Zoom</label>
+                        <input type="range" id="zoom" min="1" max="10" step="0.5" value="1">
+                        <span style="color: var(--accent); font-size: 10px; min-width: 25px;"><span id="zoomValue">1</span>x</span>
+                    </div>
+                    <div class="control-group">
+                        <label>Volume</label>
+                        <input type="range" id="masterVolume" min="0" max="1" step="0.01" value="0.7">
+                        <span style="color: var(--accent); font-size: 10px; min-width: 25px;"><span id="volumeValue">70</span>%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SIDEBAR RIGHT: Slices List -->
+            <div class="sidebar-right">
+                <div class="sidebar-title">Slices</div>
+                <div id="slicesList"></div>
+            </div>
+        </div>
+
+        <!-- SEQUENCER TAB -->
+        <div id="sequencer-tab" class="tabs-content" style="grid-template-columns: 1fr;">
+            <div class="sequencer-container">
+                <div class="sequencer-header">
+                    <div class="bpm-control">
+                        <label>BPM</label>
+                        <input type="number" id="bpmInput" min="40" max="300" value="120" style="width: 100%; padding: 4px; background: var(--bg-control); border: 1px solid var(--border); color: var(--accent); border-radius: 2px; font-family: inherit; font-size: 12px;">
+                    </div>
+                    <div class="swing-control">
+                        <label>SWING</label>
+                        <input type="range" id="swingSlider" min="0" max="100" value="0">
+                    </div>
+                    <div class="sequencer-play">
+                        <button id="seqPlayBtn">▶</button>
+                        <button id="seqStopBtn">■</button>
+                        <button id="seqExportBtn" style="background: rgba(0, 255, 136, 0.2); border: 1px solid var(--accent); color: var(--accent); flex: 1; padding: 8px; cursor: pointer; border-radius: 2px; font-weight: 600; transition: all 0.2s ease; text-transform: uppercase; font-size: 9px; letter-spacing: 0.5px;">EXP</button>
+                    </div>
+                </div>
+                <div class="sequencer-grid" id="sequencerGrid"></div>
+            </div>
+        </div>
+
+        <!-- KEYBOARD CONTROLLER -->
+        <div class="keyboard" id="keyboard"></div>
+    </div>
+
+    <div class="midi-indicator" id="midiStatus">MIDI: Not Connected</div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script>
+        // === CORE STATE ===
+        const state = {
+            audioBuffer: null,
+            audioContext: null,
+            slices: [],
+            selectedSlice: null,
+            playingSources: {},
+            pressedKeys: {},
+            zoom: 1,
+            keyBindings: ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', 'A', 'S', 'D', 'F', 'G', 'H'],
+            noteOffset: 60,
+            colors: ['#ff006e', '#00f5ff', '#ffbe0b', '#8338ec', '#fb5607', '#3a86ff', '#06ffa5', '#ff006e'],
+            draggingSlice: null,
+            dragMode: null,
+            // Sequencer
+            bpm: 120,
+            isSequencerPlaying: false,
+            sequencerPattern: {}, // { sliceIdx: { 0: 'empty'|'trigger'|'flame', 1: ..., ... } }
+            sequencerPosition: 0,
+            sequencerIntervalId: null,
+            swingAmount: 0 // 0-100%
+        };
+
+        // === TAB SWITCHING ===
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const tabName = e.target.dataset.tab;
+                
+                // Remove active class from all tabs
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tabs-content').forEach(t => t.classList.remove('active'));
+                
+                // Add active class to clicked tab
+                e.target.classList.add('active');
+                document.getElementById(`${tabName}-tab`).classList.add('active');
+            });
+        });
+
+        // === AUDIO CONTEXT ===
+        function initAudioContext() {
+            if (!state.audioContext) {
+                state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            return state.audioContext;
+        }
+
+        // === FILE LOADING ===
+        document.getElementById('audioFile').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const arrayBuffer = await file.arrayBuffer();
+            const ctx = initAudioContext();
+            
+            try {
+                state.audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+                updateSampleInfo(file.name);
+                drawWaveform();
+                state.slices = [];
+                updateSlicesList();
+                initSequencerGrid();
+            } catch (err) {
+                console.error('Audio decode error:', err);
+            }
+        });
+
+        function updateSampleInfo(filename) {
+            document.getElementById('fileName').textContent = filename;
+            document.getElementById('duration').textContent = state.audioBuffer.duration.toFixed(2);
+            document.getElementById('sampleRate').textContent = (state.audioBuffer.sampleRate / 1000).toFixed(0) + 'k';
+            document.getElementById('sampleInfo').style.display = 'block';
+        }
+
+        // === ZOOM & VOLUME ===
+        document.getElementById('zoom').addEventListener('input', (e) => {
+            state.zoom = parseFloat(e.target.value);
+            document.getElementById('zoomValue').textContent = state.zoom.toFixed(1);
+            drawWaveform();
+        });
+
+        document.getElementById('masterVolume').addEventListener('input', (e) => {
+            document.getElementById('volumeValue').textContent = Math.round(parseFloat(e.target.value) * 100);
+            drawWaveform(); // Atualiza waveform com novo volume
+        });
+
+        document.getElementById('bpmInput').addEventListener('change', (e) => {
+            state.bpm = parseInt(e.target.value);
+        });
+
+        document.getElementById('swingSlider').addEventListener('input', (e) => {
+            state.swingAmount = parseInt(e.target.value);
+        });
+
+        // === WAVEFORM RENDERING ===
+        const canvas = document.getElementById('waveform');
+        const canvasCtx = canvas.getContext('2d');
+
+        function drawWaveform() {
+            if (!state.audioBuffer) return;
+
+            const container = document.querySelector('.waveform-container');
+            const height = container.clientHeight;
+            
+            // Zoom multiplies width
+            const baseWidth = container.clientWidth;
+            const width = baseWidth * state.zoom;
+            
+            canvas.width = width;
+            canvas.height = height;
+
+            const rawData = state.audioBuffer.getChannelData(0);
+            // Downsampling bem balanceado
+            const downsample = Math.max(1, Math.floor(rawData.length / width));
+            const samples = Math.floor(rawData.length / downsample);
+
+            canvasCtx.fillStyle = 'rgba(10, 10, 10, 1)';
+            canvasCtx.fillRect(0, 0, width, height);
+
+            // Get current master volume
+            const masterVolume = parseFloat(document.getElementById('masterVolume').value);
+
+            // Draw waveform com volume dinâmico
+            canvasCtx.strokeStyle = 'rgba(0, 255, 136, 0.6)';
+            canvasCtx.lineWidth = 1;
+            canvasCtx.beginPath();
+
+            for (let i = 0; i < samples; i++) {
+                const index = Math.floor(i * downsample);
+                const value = rawData[index] * masterVolume; // Aplica volume
+                const x = (i / samples) * width;
+                const y = height / 2 - (value * height / 2);
+                if (i === 0) canvasCtx.moveTo(x, y);
+                else canvasCtx.lineTo(x, y);
+            }
+            canvasCtx.stroke();
+
+            // Draw slices
+            drawSlices();
+        }
+
+        function drawSlices() {
+            const width = canvas.width;
+            const height = canvas.height;
+
+            state.slices.forEach((slice, idx) => {
+                const x = (slice.start / state.audioBuffer.duration) * width;
+                const endX = (slice.end / state.audioBuffer.duration) * width;
+                const color = state.colors[idx % state.colors.length];
+
+                // Slice background
+                if (state.selectedSlice === idx) {
+                    canvasCtx.fillStyle = color + '30';
+                    canvasCtx.fillRect(x, 0, endX - x, height);
+                }
+
+                // Slice markers
+                canvasCtx.strokeStyle = state.selectedSlice === idx ? color : color + '80';
+                canvasCtx.lineWidth = 2;
+                canvasCtx.beginPath();
+                canvasCtx.moveTo(x, 0);
+                canvasCtx.lineTo(x, height);
+                canvasCtx.stroke();
+
+                // End marker
+                canvasCtx.beginPath();
+                canvasCtx.moveTo(endX, 0);
+                canvasCtx.lineTo(endX, height);
+                canvasCtx.stroke();
+
+                // Label
+                canvasCtx.fillStyle = color;
+                canvasCtx.font = 'bold 11px JetBrains Mono';
+                canvasCtx.fillText(`${idx} ${state.keyBindings[idx] || ''}`, x + 5, 15);
+            });
+        }
+
+        window.addEventListener('resize', drawWaveform);
+
+        // === WAVEFORM DRAG EDITING ===
+        canvas.addEventListener('mousedown', (e) => {
+            if (!state.audioBuffer) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / rect.width;
+            const time = x * state.audioBuffer.duration;
+
+            // Check if clicking near slice edges
+            for (let i = 0; i < state.slices.length; i++) {
+                const slice = state.slices[i];
+                const startX = (slice.start / state.audioBuffer.duration) * rect.width;
+                const endX = (slice.end / state.audioBuffer.duration) * rect.width;
+
+                if (Math.abs((e.clientX - rect.left) - startX) < 8) {
+                    state.draggingSlice = i;
+                    state.dragMode = 'start';
+                    canvas.style.cursor = 'col-resize';
+                    return;
+                }
+                if (Math.abs((e.clientX - rect.left) - endX) < 8) {
+                    state.draggingSlice = i;
+                    state.dragMode = 'end';
+                    canvas.style.cursor = 'col-resize';
+                    return;
+                }
+            }
+
+            // Otherwise, create new slice or delete
+            if (e.ctrlKey || e.metaKey) {
+                state.slices = state.slices.filter(s => !(Math.abs(s.start - time) < 0.05));
+            } else {
+                const nextSlice = state.slices.find(s => s.start > time);
+                const endTime = nextSlice ? nextSlice.start : state.audioBuffer.duration;
+
+                state.slices.push({
+                    start: time,
+                    end: Math.min(endTime, time + 0.5),
+                    pitch: 1,
+                    volume: 1,
+                    pan: 0,
+                    enabled: true,
+                    mode: 'shot',
+                    fadeIn: 1,
+                    fadeOut: 50
+                });
+
+                state.slices.sort((a, b) => a.start - b.start);
+                initSequencerGrid();
+            }
+
+            updateSlicesList();
+            drawWaveform();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (state.draggingSlice === null || !state.audioBuffer) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / rect.width;
+            const time = Math.max(0, Math.min(state.audioBuffer.duration, x * state.audioBuffer.duration));
+
+            const slice = state.slices[state.draggingSlice];
+
+            if (state.dragMode === 'start') {
+                slice.start = Math.min(time, slice.end - 0.01);
+            } else if (state.dragMode === 'end') {
+                slice.end = Math.max(time, slice.start + 0.01);
+            }
+
+            updatePlayingSliceAudio(state.draggingSlice);
+            updateSlicesList();
+            drawWaveform();
+        });
+
+        document.addEventListener('mouseup', () => {
+            state.draggingSlice = null;
+            state.dragMode = null;
+            canvas.style.cursor = 'crosshair';
+        });
+
+        // === SLICE DETECTION ===
+        function detectTransients() {
+            if (!state.audioBuffer) return;
+
+            const rawData = state.audioBuffer.getChannelData(0);
+            const sensitivity = parseFloat(document.getElementById('sensitivity').value);
+            const threshold = 0.02 * sensitivity;
+
+            state.slices = [];
+            let inSlice = false;
+            let sliceStart = 0;
+
+            for (let i = 1; i < rawData.length; i++) {
+                const delta = Math.abs(rawData[i] - rawData[i - 1]);
+                const isTransient = delta > threshold;
+
+                if (isTransient && !inSlice) {
+                    sliceStart = i;
+                    inSlice = true;
+                } else if (!isTransient && inSlice && i - sliceStart > state.audioBuffer.sampleRate * 0.05) {
+                    const startTime = sliceStart / state.audioBuffer.sampleRate;
+                    const endTime = i / state.audioBuffer.sampleRate;
+                    state.slices.push({
+                        start: startTime,
+                        end: endTime,
+                        pitch: 1,
+                        volume: 1,
+                        pan: 0,
+                        enabled: true,
+                        mode: 'shot',
+                        fadeIn: 1,
+                        fadeOut: 50
+                    });
+                    inSlice = false;
+                }
+            }
+
+            updateSlicesList();
+            initSequencerGrid();
+            drawWaveform();
+        }
+
+        document.getElementById('detectBtn').addEventListener('click', detectTransients);
+        document.getElementById('sensitivity').addEventListener('input', (e) => {
+            document.getElementById('sensitivityValue').textContent = Math.round(parseFloat(e.target.value) * 100) + '%';
+        });
+
+        // === SLICE PLAYBACK ===
+        function playSlice(sliceIdx, midiNote = null) {
+            if (!state.audioBuffer) return;
+
+            const slice = state.slices[sliceIdx];
+            if (!slice || !slice.enabled) return;
+
+            // Para qualquer playback anterior desta slice
+            if (state.playingSources[sliceIdx]) {
+                stopSlice(sliceIdx);
+            }
+
+            const ctx = initAudioContext();
+            const source = ctx.createBufferSource();
+            const gainNode = ctx.createGain();
+            const panNode = ctx.createStereoPanner();
+
+            let pitch = slice.pitch;
+            
+            if (midiNote !== null) {
+                const midiOffset = midiNote - state.noteOffset;
+                pitch = slice.pitch * Math.pow(2, midiOffset / 12);
+            }
+
+            source.buffer = state.audioBuffer;
+            source.playbackRate.value = pitch;
+            
+            const fadeInTime = (slice.fadeIn || 1) / 1000;
+            gainNode.gain.setValueAtTime(0, ctx.currentTime);
+            gainNode.gain.linearRampToValueAtTime(slice.volume * parseFloat(document.getElementById('masterVolume').value), ctx.currentTime + fadeInTime);
+            
+            panNode.pan.value = slice.pan;
+
+            source.connect(gainNode);
+            gainNode.connect(panNode);
+            panNode.connect(ctx.destination);
+
+            const duration = slice.end - slice.start;
+            const fadeOutTime = (slice.fadeOut || 50) / 1000;
+            
+            if (slice.mode === 'loop') {
+                source.loop = true;
+                source.loopStart = slice.start;
+                source.loopEnd = slice.end;
+                source.start(ctx.currentTime, slice.start);
+                
+                state.playingSources[sliceIdx] = { 
+                    source, 
+                    gainNode, 
+                    mode: 'loop', 
+                    ctx: ctx,
+                    fadeOutTime: fadeOutTime,
+                    sliceIdx: sliceIdx
+                };
+            } else { // shot
+                source.start(ctx.currentTime, slice.start, duration);
+                state.playingSources[sliceIdx] = { 
+                    source, 
+                    gainNode, 
+                    mode: 'shot', 
+                    ctx: ctx, 
+                    startTime: ctx.currentTime,
+                    sliceIdx: sliceIdx,
+                    duration: duration,
+                    fadeOutTime: fadeOutTime
+                };
+                
+                gainNode.gain.setValueAtTime(slice.volume * parseFloat(document.getElementById('masterVolume').value), ctx.currentTime + duration - fadeOutTime);
+                gainNode.gain.linearRampToValueAtTime(0, ctx.currentTime + duration);
+                
+                source.stop(ctx.currentTime + duration + 0.01);
+                
+                setTimeout(() => {
+                    if (state.playingSources[sliceIdx]) {
+                        delete state.playingSources[sliceIdx];
+                        const key = document.querySelector(`[data-slice="${sliceIdx}"]`);
+                        if (key) {
+                            key.classList.remove('active');
+                        }
+                    }
+                }, duration * 1000 + 10);
+            }
+
+            const key = document.querySelector(`[data-slice="${sliceIdx}"]`);
+            if (key) {
+                key.classList.add('active');
+            }
+        }
+
+        function stopSlice(sliceIdx) {
+            if (state.playingSources[sliceIdx]) {
+                try {
+                    const sourceObj = state.playingSources[sliceIdx];
+                    const ctx = sourceObj.ctx;
+                    const fadeOutTime = sourceObj.fadeOutTime || 0.001;
+                    
+                    sourceObj.gainNode.gain.linearRampToValueAtTime(0, ctx.currentTime + fadeOutTime);
+                    
+                    if (typeof sourceObj.source.stop === 'function') {
+                        sourceObj.source.stop(ctx.currentTime + fadeOutTime);
+                    }
+                } catch (e) {}
+                delete state.playingSources[sliceIdx];
+                
+                const key = document.querySelector(`[data-slice="${sliceIdx}"]`);
+                if (key) {
+                    key.classList.remove('active');
+                }
+            }
+        }
+
+        function updatePlayingSliceAudio(sliceIdx) {
+            if (!state.playingSources[sliceIdx]) return;
+
+            const slice = state.slices[sliceIdx];
+            const sourceObj = state.playingSources[sliceIdx];
+
+            if (slice.mode === 'loop' && sourceObj.source.loop) {
+                sourceObj.source.loopStart = slice.start;
+                sourceObj.source.loopEnd = slice.end;
+            }
+        }
+
+        // === SLICE LIST UI ===
+        function updateSlicesList() {
+            const list = document.getElementById('slicesList');
+            list.innerHTML = '';
+            document.getElementById('sliceCount').textContent = state.slices.length;
+
+            state.slices.forEach((slice, idx) => {
+                const item = document.createElement('div');
+                item.className = 'slice-item';
+                if (state.selectedSlice === idx) item.classList.add('active');
+                
+                const color = state.colors[idx % state.colors.length];
+                const note = state.noteOffset + idx;
+                const noteName = getNoteName(note);
+
+                item.innerHTML = `
+                    <div class="slice-header">
+                        <span class="slice-name" style="color: ${color};">Slice ${idx}</span>
+                        <span class="slice-key">${state.keyBindings[idx] || '?'} (${noteName})</span>
+                    </div>
+                    <div class="slice-controls">
+                        <button class="slice-btn-play" onclick="playSlice(${idx})">▶ PLAY</button>
+                        <button class="slice-btn-play" style="background: rgba(255, 51, 102, 0.2); border-color: var(--danger); color: var(--danger);" onclick="stopSlice(${idx})">■ STOP</button>
+                    </div>
+                    <div class="slice-params">
+                        <div class="param-slider">
+                            <label>Pitch</label>
+                            <input type="range" min="0.5" max="2" step="0.05" value="${slice.pitch}" 
+                                onchange="updateSliceParam(${idx}, 'pitch', this.value); updateSlicesList();">
+                            <span class="param-value">${(slice.pitch * 100).toFixed(0)}%</span>
+                        </div>
+                        <div class="param-slider">
+                            <label>Vol</label>
+                            <input type="range" min="0" max="1" step="0.05" value="${slice.volume}"
+                                onchange="updateSliceParam(${idx}, 'volume', this.value); updateSlicesList();">
+                            <span class="param-value">${(slice.volume * 100).toFixed(0)}%</span>
+                        </div>
+                        <div class="param-slider">
+                            <label>Pan</label>
+                            <input type="range" min="-1" max="1" step="0.1" value="${slice.pan}"
+                                onchange="updateSliceParam(${idx}, 'pan', this.value); updateSlicesList();">
+                            <span class="param-value">${(slice.pan * 100).toFixed(0)}</span>
+                        </div>
+                        <div class="param-slider">
+                            <label>Start</label>
+                            <input type="range" min="0" max="${state.audioBuffer.duration}" step="0.001" value="${slice.start}"
+                                onchange="updateSliceParam(${idx}, 'start', this.value); drawWaveform(); updatePlayingSliceAudio(${idx});">
+                            <span class="param-value">${(slice.start * 1000).toFixed(0)}ms</span>
+                        </div>
+                        <div class="param-slider">
+                            <label>End</label>
+                            <input type="range" min="0" max="${state.audioBuffer.duration}" step="0.001" value="${slice.end}"
+                                onchange="updateSliceParam(${idx}, 'end', this.value); drawWaveform(); updatePlayingSliceAudio(${idx});">
+                            <span class="param-value">${(slice.end * 1000).toFixed(0)}ms</span>
+                        </div>
+                        <div class="param-slider">
+                            <label>FadeIn</label>
+                            <input type="range" min="0" max="100" step="1" value="${slice.fadeIn || 1}"
+                                onchange="updateSliceParam(${idx}, 'fadeIn', this.value); updateSlicesList();">
+                            <span class="param-value">${(slice.fadeIn || 1)}ms</span>
+                        </div>
+                        <div class="param-slider">
+                            <label>FadeOut</label>
+                            <input type="range" min="0" max="200" step="1" value="${slice.fadeOut || 50}"
+                                onchange="updateSliceParam(${idx}, 'fadeOut', this.value); updateSlicesList();">
+                            <span class="param-value">${(slice.fadeOut || 50)}ms</span>
+                        </div>
+                    </div>
+                    <div class="slice-checkbox">
+                        <input type="checkbox" id="enabled-${idx}" ${slice.enabled ? 'checked' : ''} 
+                            onchange="updateSliceParam(${idx}, 'enabled', this.checked); updateSlicesList();">
+                        <label for="enabled-${idx}">Use in keyboard</label>
+                    </div>
+                    <div class="slice-mode">
+                        <button class="mode-btn ${slice.mode === 'shot' ? 'active' : ''}" onclick="updateSliceParam(${idx}, 'mode', 'shot'); updateSlicesList();">Shot</button>
+                        <button class="mode-btn ${slice.mode === 'loop' ? 'active' : ''}" onclick="updateSliceParam(${idx}, 'mode', 'loop'); updateSlicesList();">Loop</button>
+                    </div>
+                    <div class="slice-actions">
+                        <button onclick="exportSlice(${idx})">Export</button>
+                        <button onclick="deleteSlice(${idx})" style="color: var(--danger); border-color: var(--danger);">Delete</button>
+                    </div>
+                `;
+                item.addEventListener('click', () => {
+                    state.selectedSlice = state.selectedSlice === idx ? null : idx;
+                    updateSlicesList();
+                    drawWaveform();
+                });
+                list.appendChild(item);
+            });
+        }
+
+        function updateSliceParam(idx, param, value) {
+            if (param === 'enabled') {
+                state.slices[idx][param] = value;
+            } else if (param === 'mode') {
+                state.slices[idx][param] = value;
+            } else if (param === 'fadeIn' || param === 'fadeOut') {
+                state.slices[idx][param] = parseInt(value);
+            } else {
+                state.slices[idx][param] = parseFloat(value);
+            }
+        }
+
+        function deleteSlice(idx) {
+            stopSlice(idx);
+            state.slices.splice(idx, 1);
+            state.selectedSlice = null;
+            updateSlicesList();
+            initSequencerGrid();
+            drawWaveform();
+        }
+
+        // === MIDI NOTE NAMES ===
+        function getNoteName(midiNote) {
+            const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+            const octave = Math.floor(midiNote / 12) - 1;
+            const note = notes[midiNote % 12];
+            return `${note}${octave}`;
+        }
+
+        // === KEYBOARD CONTROLLER ===
+        function initKeyboard() {
+            const keyboard = document.getElementById('keyboard');
+            keyboard.innerHTML = '';
+
+            state.keyBindings.forEach((key, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'key';
+                btn.setAttribute('data-slice', idx);
+                
+                if (idx < state.slices.length && state.slices[idx].enabled) {
+                    const note = state.noteOffset + idx;
+                    const noteName = getNoteName(note);
+                    btn.innerHTML = `${key}<small>${noteName}</small>`;
+                } else {
+                    btn.classList.add('disabled-key');
+                    btn.innerHTML = `${key}<small>-</small>`;
+                }
+
+                btn.addEventListener('click', () => {
+                    if (idx < state.slices.length && state.slices[idx].enabled) {
+                        playSlice(idx);
+                    }
+                });
+                keyboard.appendChild(btn);
+            });
+        }
+
+        // === KEYBOARD EVENTS ===
+        document.addEventListener('keydown', (e) => {
+            const keyIdx = state.keyBindings.indexOf(e.key.toUpperCase());
+            if (keyIdx !== -1 && keyIdx < state.slices.length && state.slices[keyIdx].enabled) {
+                if (!state.pressedKeys[keyIdx]) {
+                    state.pressedKeys[keyIdx] = true;
+                    playSlice(keyIdx);
+                }
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            const keyIdx = state.keyBindings.indexOf(e.key.toUpperCase());
+            if (keyIdx !== -1 && keyIdx < state.slices.length) {
+                state.pressedKeys[keyIdx] = false;
+                
+                const slice = state.slices[keyIdx];
+                if (slice && slice.mode === 'loop') {
+                    stopSlice(keyIdx);
+                }
+            }
+        });
+
+        // === MIDI SUPPORT ===
+        async function initMIDI() {
+            try {
+                const access = await navigator.requestMIDIAccess();
+                document.getElementById('midiStatus').classList.add('connected');
+                document.getElementById('midiStatus').textContent = 'MIDI: Connected';
+
+                access.inputs.forEach(input => {
+                    input.onmidimessage = (msg) => {
+                        const [cmd, note, velocity] = msg.data;
+                        const relativeNote = note - state.noteOffset;
+                        
+                        if (cmd === 0x90 && velocity > 0) {
+                            if (relativeNote >= 0 && relativeNote < state.slices.length) {
+                                if (!state.pressedKeys[relativeNote]) {
+                                    state.pressedKeys[relativeNote] = true;
+                                    playSlice(relativeNote, note);
+                                }
+                            }
+                        } else if (cmd === 0x80 || (cmd === 0x90 && velocity === 0)) {
+                            if (relativeNote >= 0 && relativeNote < state.slices.length) {
+                                state.pressedKeys[relativeNote] = false;
+                                
+                                const slice = state.slices[relativeNote];
+                                if (slice && (slice.mode === 'loop' || slice.mode === 'shot')) {
+                                    stopSlice(relativeNote);
+                                }
+                            }
+                        }
+                    };
+                });
+            } catch (err) {
+                console.log('MIDI not available:', err);
+            }
+        }
+
+        // === STEP SEQUENCER ===
+        function initSequencerGrid() {
+            if (!state.audioBuffer || state.slices.length === 0) {
+                document.getElementById('sequencerGrid').innerHTML = '<div style="padding: 20px; color: var(--text-secondary); text-align: center;">Load sample and create slices to use sequencer</div>';
+                return;
+            }
+
+            const grid = document.getElementById('sequencerGrid');
+            grid.innerHTML = '';
+
+            state.slices.forEach((slice, sliceIdx) => {
+                // Initialize pattern for this slice if not exists
+                if (!state.sequencerPattern[sliceIdx]) {
+                    state.sequencerPattern[sliceIdx] = {};
+                    for (let i = 0; i < 16; i++) {
+                        state.sequencerPattern[sliceIdx][i] = 'empty';
+                    }
+                }
+
+                const row = document.createElement('div');
+                row.className = 'sequencer-row';
+
+                const label = document.createElement('div');
+                label.className = 'sequencer-label';
+                label.textContent = `Slice ${sliceIdx}`;
+                row.appendChild(label);
+
+                for (let step = 0; step < 16; step++) {
+                    const stepBtn = document.createElement('button');
+                    stepBtn.className = 'sequencer-step';
+                    const state_val = state.sequencerPattern[sliceIdx][step];
+                    
+                    if (state_val === 'trigger') {
+                        stepBtn.classList.add('active'); // Green
+                        stepBtn.style.background = 'var(--accent)';
+                        stepBtn.style.borderColor = 'var(--accent)';
+                    } else if (state_val === 'flame') {
+                        stepBtn.classList.add('flame'); // Magenta
+                        stepBtn.style.background = '#ff00ff';
+                        stepBtn.style.borderColor = '#ff00ff';
+                    }
+
+                    stepBtn.addEventListener('click', () => {
+                        // Ciclo: empty -> trigger (green) -> flame (magenta) -> empty
+                        const current = state.sequencerPattern[sliceIdx][step];
+                        let next;
+                        
+                        if (current === 'empty') {
+                            next = 'trigger';
+                            stepBtn.style.background = 'var(--accent)';
+                            stepBtn.style.borderColor = 'var(--accent)';
+                            stepBtn.classList.add('active');
+                            stepBtn.classList.remove('flame');
+                        } else if (current === 'trigger') {
+                            next = 'flame';
+                            stepBtn.style.background = '#ff00ff';
+                            stepBtn.style.borderColor = '#ff00ff';
+                            stepBtn.classList.remove('active');
+                            stepBtn.classList.add('flame');
+                        } else { // flame
+                            next = 'empty';
+                            stepBtn.style.background = 'var(--bg-panel)';
+                            stepBtn.style.borderColor = 'var(--border)';
+                            stepBtn.classList.remove('active');
+                            stepBtn.classList.remove('flame');
+                        }
+                        
+                        state.sequencerPattern[sliceIdx][step] = next;
+                    });
+
+                    row.appendChild(stepBtn);
+                }
+
+                grid.appendChild(row);
+            });
+        }
+
+        function startSequencer() {
+            if (state.isSequencerPlaying) return;
+
+            state.isSequencerPlaying = true;
+            state.sequencerPosition = 0;
+            document.getElementById('seqPlayBtn').classList.add('active');
+
+            const stepDuration = (60 / state.bpm) * 1000 / 4; // 16th notes
+
+            const playStep = () => {
+                // Highlight current step
+                document.querySelectorAll('.sequencer-step').forEach(step => {
+                    step.classList.remove('playing');
+                });
+
+                document.querySelectorAll('.sequencer-row').forEach((row, sliceIdx) => {
+                    const stepBtn = row.querySelector(`button:nth-child(${state.sequencerPosition + 2})`);
+                    if (stepBtn) {
+                        stepBtn.classList.add('playing');
+                    }
+
+                    const stepState = state.sequencerPattern[sliceIdx][state.sequencerPosition];
+                    
+                    if (stepState === 'trigger') {
+                        playSlice(sliceIdx);
+                    } else if (stepState === 'flame') {
+                        // Flame: repeat 4x em fusas
+                        playSlice(sliceIdx);
+                        for (let i = 1; i <= 3; i++) {
+                            setTimeout(() => {
+                                playSlice(sliceIdx);
+                            }, i * (stepDuration / 4));
+                        }
+                    }
+                });
+
+                state.sequencerPosition = (state.sequencerPosition + 1) % 16;
+
+                // Swing timing: steps pares têm delay adicional
+                const isEvenStep = state.sequencerPosition % 2 === 0;
+                const swingDelay = isEvenStep ? (stepDuration * state.swingAmount / 100) * 0.5 : 0;
+                const nextStepDelay = stepDuration + swingDelay;
+
+                if (state.isSequencerPlaying) {
+                    state.sequencerIntervalId = setTimeout(playStep, nextStepDelay);
+                }
+            };
+
+            playStep();
+        }
+
+        function stopSequencer() {
+            state.isSequencerPlaying = false;
+            state.sequencerPosition = 0;
+            clearInterval(state.sequencerIntervalId);
+            clearTimeout(state.sequencerIntervalId);
+            document.getElementById('seqPlayBtn').classList.remove('active');
+            document.querySelectorAll('.sequencer-step').forEach(step => {
+                step.classList.remove('playing');
+            });
+        }
+
+        document.getElementById('seqPlayBtn').addEventListener('click', startSequencer);
+        document.getElementById('seqStopBtn').addEventListener('click', stopSequencer);
+        document.getElementById('seqExportBtn').addEventListener('click', exportSequencerLoop);
+
+        // === SEQUENCER EXPORT ===
+        function exportSequencerLoop() {
+            if (!state.audioBuffer || state.slices.length === 0) {
+                alert('No slices or sequencer pattern to export');
+                return;
+            }
+
+            const ctx = initAudioContext();
+            const stepDuration = (60 / state.bpm) * 1000 / 4; // 16th notes em ms
+            const stepDurationSeconds = stepDuration / 1000;
+            const loopDurationSeconds = stepDurationSeconds * 16; // 16 steps
+            const sampleRate = state.audioBuffer.sampleRate;
+            const totalSamples = Math.ceil(loopDurationSeconds * sampleRate);
+
+            // Create offline context para renderizar
+            const offlineCtx = new OfflineAudioContext(1, totalSamples, sampleRate);
+
+            // Para cada step, agrega os sounds
+            for (let step = 0; step < 16; step++) {
+                const stepStartTime = step * stepDurationSeconds;
+
+                state.slices.forEach((slice, sliceIdx) => {
+                    const stepState = state.sequencerPattern[sliceIdx][step];
+
+                    if (stepState === 'trigger') {
+                        playSliceOffline(offlineCtx, sliceIdx, stepStartTime, false);
+                    } else if (stepState === 'flame') {
+                        // Flame: 4 repeats em fusas
+                        for (let repeat = 0; repeat < 4; repeat++) {
+                            const repeatStartTime = stepStartTime + (repeat * stepDurationSeconds / 4);
+                            playSliceOffline(offlineCtx, sliceIdx, repeatStartTime, false);
+                        }
+                    }
+                });
+            }
+
+            // Render
+            offlineCtx.startRendering().then((renderedBuffer) => {
+                const wav = encodeWavFile(
+                    Array.from(renderedBuffer.getChannelData(0)),
+                    sampleRate
+                );
+
+                const audioFileName = document.getElementById('fileName').textContent.split('.')[0];
+                const filename = `${audioFileName}_sequencer_loop.wav`;
+                downloadWAV(wav, filename);
+            }).catch((err) => {
+                console.error('Export error:', err);
+                alert('Error exporting sequencer loop');
+            });
+        }
+
+        function playSliceOffline(offlineCtx, sliceIdx, startTime, isMidiNote = false) {
+            const slice = state.slices[sliceIdx];
+            if (!slice || !slice.enabled) return;
+
+            const source = offlineCtx.createBufferSource();
+            const gainNode = offlineCtx.createGain();
+            const panNode = offlineCtx.createStereoPanner();
+
+            let pitch = slice.pitch;
+            
+            source.buffer = state.audioBuffer;
+            source.playbackRate.value = pitch;
+            
+            const fadeInTime = (slice.fadeIn || 1) / 1000;
+            gainNode.gain.setValueAtTime(0, startTime);
+            gainNode.gain.linearRampToValueAtTime(slice.volume * parseFloat(document.getElementById('masterVolume').value), startTime + fadeInTime);
+            
+            panNode.pan.value = slice.pan;
+
+            source.connect(gainNode);
+            gainNode.connect(panNode);
+            panNode.connect(offlineCtx.destination);
+
+            const duration = slice.end - slice.start;
+            const fadeOutTime = (slice.fadeOut || 50) / 1000;
+
+            if (slice.mode === 'loop') {
+                source.loop = true;
+                source.loopStart = slice.start;
+                source.loopEnd = slice.end;
+                source.start(startTime, slice.start, duration);
+                
+                gainNode.gain.setValueAtTime(slice.volume * parseFloat(document.getElementById('masterVolume').value), startTime + duration - fadeOutTime);
+                gainNode.gain.linearRampToValueAtTime(0, startTime + duration);
+                
+                source.stop(startTime + duration);
+            } else { // shot
+                source.start(startTime, slice.start, duration);
+                
+                gainNode.gain.setValueAtTime(slice.volume * parseFloat(document.getElementById('masterVolume').value), startTime + duration - fadeOutTime);
+                gainNode.gain.linearRampToValueAtTime(0, startTime + duration);
+                
+                source.stop(startTime + duration);
+            }
+        }
+        document.getElementById('seqExportBtn').addEventListener('click', exportSequencerLoop);
+
+        // === WAV EXPORT ===
+        function encodeWAV(audioBuffer, startTime, endTime) {
+            const sampleRate = audioBuffer.sampleRate;
+            const channelData = audioBuffer.getChannelData(0);
+            const startSample = Math.floor(startTime * sampleRate);
+            const endSample = Math.ceil(endTime * sampleRate);
+            const sliceLength = endSample - startSample;
+
+            const wav = [];
+            const volume = 0.8;
+
+            for (let i = 0; i < sliceLength; i++) {
+                wav.push(channelData[startSample + i] * volume);
+            }
+
+            return encodeWavFile(wav, sampleRate);
+        }
+
+        function encodeWavFile(samples, sampleRate) {
+            const channels = 1;
+            const bitsPerSample = 16;
+            const byteRate = sampleRate * channels * bitsPerSample / 8;
+            const blockAlign = channels * bitsPerSample / 8;
+
+            const dataLength = samples.length * blockAlign;
+            const wavLength = 36 + dataLength;
+
+            const arraybuffer = new ArrayBuffer(44 + dataLength);
+            const view = new DataView(arraybuffer);
+
+            const writeString = (offset, string) => {
+                for (let i = 0; i < string.length; i++) {
+                    view.setUint8(offset + i, string.charCodeAt(i));
+                }
+            };
+
+            writeString(0, 'RIFF');
+            view.setUint32(4, wavLength, true);
+            writeString(8, 'WAVE');
+            writeString(12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true);
+            view.setUint16(22, channels, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, byteRate, true);
+            view.setUint16(32, blockAlign, true);
+            view.setUint16(34, bitsPerSample, true);
+            writeString(36, 'data');
+            view.setUint32(40, dataLength, true);
+
+            let offset = 44;
+            for (let i = 0; i < samples.length; i++) {
+                const s = Math.max(-1, Math.min(1, samples[i]));
+                view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+                offset += 2;
+            }
+
+            return arraybuffer;
+        }
+
+        function downloadWAV(arraybuffer, filename) {
+            const blob = new Blob([arraybuffer], { type: 'audio/wav' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function exportSlice(sliceIdx) {
+            if (!state.audioBuffer) return;
+
+            const slice = state.slices[sliceIdx];
+            const audioFileName = document.getElementById('fileName').textContent.split('.')[0];
+            const filename = `${audioFileName}_slice_${sliceIdx}.wav`;
+
+            const wav = encodeWAV(state.audioBuffer, slice.start, slice.end);
+            downloadWAV(wav, filename);
+        }
+
+        function exportAllSlices() {
+            if (!state.audioBuffer || state.slices.length === 0) {
+                alert('No slices to export');
+                return;
+            }
+
+            state.slices.forEach((slice, idx) => {
+                setTimeout(() => {
+                    exportSlice(idx);
+                }, idx * 300);
+            });
+        }
+
+        // === CLEAR ===
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            if (confirm('Clear all slices?')) {
+                state.slices = [];
+                state.selectedSlice = null;
+                updateSlicesList();
+                initSequencerGrid();
+                drawWaveform();
+            }
+        });
+
+        document.getElementById('exportBtn').addEventListener('click', exportAllSlices);
+
+        // === PROJECT SAVE/LOAD ===
+        async function saveProject() {
+            if (!state.audioBuffer) {
+                alert('Load an audio file first');
+                return;
+            }
+
+            const zip = new JSZip();
+            const audioFileName = document.getElementById('fileName').textContent;
+
+            // Save audio file
+            const audioData = state.audioBuffer.getChannelData(0);
+            const wavBuffer = encodeWavFile(Array.from(audioData), state.audioBuffer.sampleRate);
+            zip.file('audio.' + audioFileName.split('.').pop(), new Blob([wavBuffer]));
+
+            // Save project metadata
+            const projectData = {
+                audioFileName: audioFileName,
+                bpm: state.bpm,
+                swingAmount: state.swingAmount,
+                slices: state.slices.map(s => ({
+                    start: s.start,
+                    end: s.end,
+                    pitch: s.pitch,
+                    volume: s.volume,
+                    pan: s.pan,
+                    enabled: s.enabled,
+                    mode: s.mode,
+                    fadeIn: s.fadeIn,
+                    fadeOut: s.fadeOut
+                })),
+                sequencerPattern: state.sequencerPattern
+            };
+
+            zip.file('project.json', JSON.stringify(projectData, null, 2));
+
+            // Generate and download ZIP
+            const content = await zip.generateAsync({ type: 'blob' });
+            const url = URL.createObjectURL(content);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `slicer_project_${Date.now()}.zip`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        async function loadProject() {
+            document.getElementById('projectFile').click();
+        }
+
+        document.getElementById('projectFile').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            try {
+                const zip = await JSZip.loadAsync(file);
+                
+                // Load project metadata
+                const projectJson = await zip.file('project.json').async('string');
+                const projectData = JSON.parse(projectJson);
+
+                // Load audio file
+                const audioFiles = Object.keys(zip.files).filter(f => f.startsWith('audio.'));
+                if (audioFiles.length === 0) {
+                    alert('No audio file found in project');
+                    return;
+                }
+
+                const audioBlob = await zip.file(audioFiles[0]).async('blob');
+                const arrayBuffer = await audioBlob.arrayBuffer();
+                const ctx = initAudioContext();
+                state.audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+
+                // Restore project data
+                document.getElementById('fileName').textContent = projectData.audioFileName;
+                document.getElementById('duration').textContent = state.audioBuffer.duration.toFixed(2);
+                document.getElementById('sampleRate').textContent = (state.audioBuffer.sampleRate / 1000).toFixed(0) + 'k';
+                document.getElementById('sampleInfo').style.display = 'block';
+
+                state.bpm = projectData.bpm;
+                state.swingAmount = projectData.swingAmount;
+                state.slices = projectData.slices;
+                state.sequencerPattern = projectData.sequencerPattern;
+
+                // Update UI
+                document.getElementById('bpmInput').value = state.bpm;
+                document.getElementById('swingSlider').value = state.swingAmount;
+                
+                updateSlicesList();
+                initSequencerGrid();
+                drawWaveform();
+                initKeyboard();
+
+                alert('Project loaded successfully!');
+            } catch (err) {
+                console.error('Load error:', err);
+                alert('Error loading project: ' + err.message);
+            }
+        });
+
+        // === INIT ===
+        initAudioContext();
+        initMIDI();
+        initKeyboard();
+
+        document.getElementById('saveBtn').addEventListener('click', saveProject);
+        document.getElementById('loadBtn').addEventListener('click', loadProject);
+
+        window.addEventListener('resize', () => {
+            drawWaveform();
+            initKeyboard();
+        });
+    </script>
+</body>
+</html>
