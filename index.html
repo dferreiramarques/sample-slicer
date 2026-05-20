@@ -101,6 +101,23 @@
             color: var(--bg-dark);
         }
 
+        /* REC Button Pulse Animation */
+        @keyframes pulse {
+            0%, 100% {
+                box-shadow: 0 0 0 0 rgba(255, 51, 102, 0.7);
+            }
+            50% {
+                box-shadow: 0 0 0 15px rgba(255, 51, 102, 0);
+            }
+        }
+
+        #recBtn.recording {
+            animation: pulse 1.5s infinite;
+            background: #ff3366 !important;
+            border-color: #ff3366 !important;
+            color: #ffffff !important;
+        }
+
         /* TABS */
         .tabs-nav {
             display: flex;
@@ -1003,6 +1020,7 @@
             selectedSlice: null,
             playingSources: {},
             pressedKeys: {},
+            fullAudioSource: null,
             zoom: 1,
             keyBindings: ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', 'A', 'S', 'D', 'F', 'G', 'H'],
             noteOffset: 60,
@@ -1199,6 +1217,40 @@
             const width = canvas.width;
             const height = canvas.height;
 
+            // Draw Play/Stop buttons (topo esquerdo)
+            const buttonW = 28;
+            const buttonH = 28;
+            const buttonY = 8;
+            const playX = 8;
+            const stopX = 42;
+
+            // Play button
+            canvasCtx.fillStyle = state.fullAudioSource ? 'rgba(0, 255, 136, 0.4)' : 'rgba(0, 255, 136, 0.15)';
+            canvasCtx.fillRect(playX, buttonY, buttonW, buttonH);
+            canvasCtx.strokeStyle = 'rgba(0, 255, 136, 0.8)';
+            canvasCtx.lineWidth = 1.5;
+            canvasCtx.strokeRect(playX, buttonY, buttonW, buttonH);
+            
+            // Play icon (▶)
+            canvasCtx.fillStyle = 'rgba(0, 255, 136, 1)';
+            canvasCtx.beginPath();
+            canvasCtx.moveTo(playX + 9, buttonY + 8);
+            canvasCtx.lineTo(playX + 9, buttonY + 20);
+            canvasCtx.lineTo(playX + 20, buttonY + 14);
+            canvasCtx.closePath();
+            canvasCtx.fill();
+
+            // Stop button
+            canvasCtx.fillStyle = 'rgba(255, 51, 102, 0.15)';
+            canvasCtx.fillRect(stopX, buttonY, buttonW, buttonH);
+            canvasCtx.strokeStyle = 'rgba(255, 51, 102, 0.8)';
+            canvasCtx.lineWidth = 1.5;
+            canvasCtx.strokeRect(stopX, buttonY, buttonW, buttonH);
+            
+            // Stop icon (square)
+            canvasCtx.fillStyle = 'rgba(255, 51, 102, 1)';
+            canvasCtx.fillRect(stopX + 7, buttonY + 7, 14, 14);
+
             state.slices.forEach((slice, idx) => {
                 const x = (slice.start / state.audioBuffer.duration) * width;
                 const endX = (slice.end / state.audioBuffer.duration) * width;
@@ -1250,7 +1302,23 @@
             if (!state.audioBuffer) return;
 
             const rect = canvas.getBoundingClientRect();
-            const x = (e.clientX - rect.left) / rect.width;
+            const xPixels = e.clientX - rect.left;
+            const yPixels = e.clientY - rect.top;
+            const x = xPixels / rect.width;
+            const y = yPixels / rect.height;
+
+            // Play button hit area (x: 8-36, y: 8-36)
+            if (xPixels >= 8 && xPixels <= 36 && yPixels >= 8 && yPixels <= 36) {
+                playFullAudio();
+                return;
+            }
+            
+            // Stop button hit area (x: 42-70, y: 8-36)
+            if (xPixels >= 42 && xPixels <= 70 && yPixels >= 8 && yPixels <= 36) {
+                stopFullAudio();
+                return;
+            }
+
             const time = x * state.audioBuffer.duration;
 
             // Check if clicking near slice edges
@@ -1341,7 +1409,12 @@
 
             const rawData = state.audioBuffer.getChannelData(0);
             const sensitivity = parseFloat(document.getElementById('sensitivity').value);
-            const threshold = 0.02 * sensitivity;
+            // MUITO menos sensível - threshold 5x maior
+            const threshold = 0.15 * sensitivity;
+            // Mínimo de duração entre transientes (200ms)
+            const minDuration = state.audioBuffer.sampleRate * 0.2;
+            // Mínimo de tamanho de slice (150ms)
+            const minSliceLength = state.audioBuffer.sampleRate * 0.15;
 
             state.slices = [];
             let inSlice = false;
@@ -1354,20 +1427,23 @@
                 if (isTransient && !inSlice) {
                     sliceStart = i;
                     inSlice = true;
-                } else if (!isTransient && inSlice && i - sliceStart > state.audioBuffer.sampleRate * 0.05) {
-                    const startTime = sliceStart / state.audioBuffer.sampleRate;
-                    const endTime = i / state.audioBuffer.sampleRate;
-                    state.slices.push({
-                        start: startTime,
-                        end: endTime,
-                        pitch: 1,
-                        volume: 1,
-                        pan: 0,
-                        enabled: true,
-                        mode: 'shot',
-                        fadeIn: 1,
-                        fadeOut: 50
-                    });
+                } else if (!isTransient && inSlice && i - sliceStart > minDuration) {
+                    // Só cria slice se tiver tamanho mínimo
+                    if (i - sliceStart > minSliceLength) {
+                        const startTime = sliceStart / state.audioBuffer.sampleRate;
+                        const endTime = i / state.audioBuffer.sampleRate;
+                        state.slices.push({
+                            start: startTime,
+                            end: endTime,
+                            pitch: 1,
+                            volume: 1,
+                            pan: 0,
+                            enabled: true,
+                            mode: 'shot',
+                            fadeIn: 1,
+                            fadeOut: 50
+                        });
+                    }
                     inSlice = false;
                 }
             }
@@ -1381,6 +1457,48 @@
         document.getElementById('sensitivity').addEventListener('input', (e) => {
             document.getElementById('sensitivityValue').textContent = Math.round(parseFloat(e.target.value) * 100) + '%';
         });
+
+        // === FULL WAVEFORM PLAYBACK ===
+        function playFullAudio() {
+            if (!state.audioBuffer) return;
+
+            // Para qualquer playback anterior
+            if (state.fullAudioSource) {
+                stopFullAudio();
+            }
+
+            const ctx = initAudioContext();
+            const source = ctx.createBufferSource();
+            const gainNode = ctx.createGain();
+
+            source.buffer = state.audioBuffer;
+            gainNode.gain.value = parseFloat(document.getElementById('masterVolume').value);
+
+            source.connect(gainNode);
+            gainNode.connect(ctx.destination);
+
+            source.start(ctx.currentTime);
+
+            state.fullAudioSource = { source, gainNode, ctx, startTime: ctx.currentTime };
+
+            const duration = state.audioBuffer.duration;
+            setTimeout(() => {
+                if (state.fullAudioSource) {
+                    stopFullAudio();
+                }
+            }, duration * 1000 + 10);
+        }
+
+        function stopFullAudio() {
+            if (state.fullAudioSource) {
+                try {
+                    state.fullAudioSource.source.stop(state.fullAudioSource.ctx.currentTime);
+                } catch (e) {
+                    // Já foi parado
+                }
+                state.fullAudioSource = null;
+            }
+        }
 
         // === SLICE PLAYBACK ===
         function playSlice(sliceIdx, midiNote = null) {
@@ -2402,9 +2520,9 @@
                 state.mediaRecorder = mediaRecorder;
                 state.isRecording = true;
                 document.getElementById('recBtn').textContent = '⏹ STOP';
-                document.getElementById('recBtn').style.background = '#ff3366';
+                document.getElementById('recBtn').classList.add('recording');
                 
-                // Visualização em tempo real
+                // Visualização em tempo real (agora só pulse no botão)
                 visualizeRecording();
                 
                 // Stop recording after 60 seconds max
@@ -2421,28 +2539,10 @@
         }
         
         function visualizeRecording() {
-            if (!state.recordingAnalyser || !state.isRecording) return;
-
-            const rect = canvas.getBoundingClientRect();
-            const width = canvas.width || rect.width;
-            const height = canvas.height || rect.height;
-
-            canvas.width = width;
-            canvas.height = height;
-
-            // Retângulo vermelho todo
-            canvasCtx.fillStyle = '#ff3366';
-            canvasCtx.fillRect(0, 0, width, height);
-
-            // Texto "Recording" branco no centro - mesmo tipo/tamanho do título
-            canvasCtx.fillStyle = '#ffffff';
-            canvasCtx.font = 'bold 72px JetBrains Mono';
-            canvasCtx.textAlign = 'center';
-            canvasCtx.textBaseline = 'middle';
-            canvasCtx.letterSpacing = '3px';
-            canvasCtx.fillText('RECORDING', width / 2, height / 2);
-
-            requestAnimationFrame(visualizeRecording);
+            // Sem visualização no canvas - feedback visual só no botão
+            if (state.recordingAnalyser && state.isRecording) {
+                requestAnimationFrame(visualizeRecording);
+            }
         }
         
         function stopRecording() {
@@ -2450,6 +2550,9 @@
                 state.mediaRecorder.stop();
                 state.mediaRecorder.stream.getTracks().forEach(track => track.stop());
                 state.isRecording = false;
+                
+                document.getElementById('recBtn').textContent = '● REC';
+                document.getElementById('recBtn').classList.remove('recording');
             }
         }
         
