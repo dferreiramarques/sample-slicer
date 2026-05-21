@@ -1033,31 +1033,81 @@
         }
 
         .sequencer-header {
-            display: grid;
-            grid-template-columns: 80px 150px 1fr 200px;
-            gap: 12px;
+            display: flex;
+            justify-content: space-between;
             align-items: center;
-            padding: 8px 12px;
+            gap: 20px;
+            padding: 12px 16px;
+            background: var(--bg-panel);
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+        }
+
+        .bpm-control {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 80px;
+        }
+
+        .bpm-control label {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+        }
+
+        .swing-control {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 150px;
+            flex: 0 0 auto;
+        }
+
+        .swing-control label {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
         }
 
         .sequencer-play {
             display: flex;
-            gap: 6px;
-            justify-content: flex-end;
+            gap: 8px;
+            align-items: center;
+            flex: 0 0 auto;
+            margin-left: auto;
         }
 
         .sequencer-play button {
-            width: 60px;
-            padding: 8px 4px;
+            min-width: 44px;
+            padding: 8px 12px;
             background: var(--bg-control);
             border: 1px solid var(--border);
             color: var(--text-primary);
             cursor: pointer;
             border-radius: 6px;
             font-weight: 600;
-            font-size: 12px;
+            font-size: 13px;
             transition: all 0.15s ease;
             font-family: inherit;
+            white-space: nowrap;
+        }
+
+        .sequencer-play button:first-child,
+        .sequencer-play button:nth-child(2) {
+            min-width: 40px;
+            padding: 8px;
+            font-size: 14px;
+        }
+
+        .sequencer-play #seqExportBtn {
+            min-width: auto;
+            padding: 8px 20px;
+            font-size: 12px;
         }
 
         .sequencer-play button:hover {
@@ -1451,18 +1501,20 @@
         <div id="sequencer-tab" class="tabs-content" style="grid-template-columns: 1fr;">
             <div class="sequencer-container" style="overflow: hidden; display: grid; grid-template-rows: auto 1fr;">
                 <div class="sequencer-header">
-                    <div class="bpm-control">
-                        <label>BPM</label>
-                        <input type="number" id="bpmInput" min="40" max="300" value="120" style="width: 100%; padding: 4px; background: var(--bg-control); border: 1px solid var(--border); color: var(--accent); border-radius: 2px; font-family: inherit; font-size: 14px;">
-                    </div>
-                    <div class="swing-control">
-                        <label>SWING</label>
-                        <input type="range" id="swingSlider" min="0" max="100" value="0">
+                    <div style="display: flex; gap: 20px; align-items: flex-end;">
+                        <div class="bpm-control">
+                            <label>BPM</label>
+                            <input type="number" id="bpmInput" min="40" max="300" value="120" style="width: 100%; padding: 4px; background: var(--bg-control); border: 1px solid var(--border); color: var(--accent); border-radius: 2px; font-family: inherit; font-size: 14px;">
+                        </div>
+                        <div class="swing-control">
+                            <label>SWING</label>
+                            <input type="range" id="swingSlider" min="0" max="100" value="0">
+                        </div>
                     </div>
                     <div class="sequencer-play">
-                        <button id="seqPlayBtn">▶</button>
-                        <button id="seqStopBtn">■</button>
-                        <button id="seqExportBtn" class="btn" style="padding: 8px 20px; font-size: 12px;">Export</button>
+                        <button id="seqPlayBtn" title="Play">▶</button>
+                        <button id="seqStopBtn" title="Stop">■</button>
+                        <button id="seqExportBtn" class="btn">Export</button>
                     </div>
                 </div>
                 <div class="sequencer-grid" id="sequencerGrid" style="flex: 1; overflow: auto;"></div>
