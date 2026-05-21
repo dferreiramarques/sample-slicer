@@ -5,9 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#00ff88">
     <meta name="description" content="Professional browser-based sample slicer and 16-step sequencer with effects chain">
-    <link rel="manifest" href="manifest.json">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%230a0a0a' width='192' height='192'/><text x='96' y='120' font-family='monospace' font-size='80' font-weight='bold' fill='%2300ff88' text-anchor='middle'>◆</text></svg>">
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%230a0a0a' width='192' height='192'/><text x='96' y='120' font-family='monospace' font-size='80' font-weight='bold' fill='%2300ff88' text-anchor='middle'>◆</text></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <title>SLICER — Sample Slicer</title>
     <style>
         * {
@@ -17,57 +19,346 @@
         }
 
         :root {
-            --bg-dark: #0a0a0a;
-            --bg-panel: #121212;
-            --bg-control: #1a1a1a;
-            --accent: #00ff88;
-            --accent-dim: #00cc6a;
-            --text-primary: #ffffff;
-            --text-secondary: #888888;
-            --border: #222222;
-            --danger: #ff3366;
-            --grid-color: #1a1a1a;
+            /* Modern Podcast App Palette */
+            --bg-dark: #0f1419;
+            --bg-panel: #1a202c;
+            --bg-control: #252f3f;
+            --bg-lighter: #2d3748;
+            
+            /* Accent colors - Modern blue/purple */
+            --accent: #6366f1;
+            --accent-light: #818cf8;
+            --accent-dark: #4f46e5;
+            
+            /* Text colors */
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --border: #334155;
+            
+            /* Utility */
+            --danger: #ef4444;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --grid-color: #1e293b;
         }
 
         body {
-            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: var(--bg-dark);
             color: var(--text-primary);
             overflow: hidden;
             user-select: none;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-panel);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--bg-lighter);
+        }
+
+        /* Mono apenas para valores numéricos e código */
+        .mono, code, kbd, .value, .param-value, input[type="number"] {
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+        }
+
+        /* ===== PEDAL/KNOB STYLES ===== */
+        .pedal {
+            position: relative;
+            padding: 16px 14px 14px;
+            border-radius: 10px;
+            background: linear-gradient(180deg, #2a2f3e 0%, #1d2230 100%);
+            box-shadow: 
+                inset 0 1px 0 rgba(255, 255, 255, 0.08),
+                inset 0 -1px 0 rgba(0, 0, 0, 0.4),
+                0 4px 8px rgba(0, 0, 0, 0.3),
+                0 1px 2px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid rgba(0, 0, 0, 0.4);
+        }
+
+        .pedal::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 10px;
+            background: radial-gradient(ellipse at top, rgba(255, 255, 255, 0.04), transparent 70%);
+            pointer-events: none;
+        }
+
+        .pedal-screw {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: radial-gradient(circle at 30% 30%, #888 0%, #333 100%);
+            border-radius: 50%;
+            box-shadow: inset 0 0 1px rgba(0, 0, 0, 0.8), 0 1px 1px rgba(0, 0, 0, 0.5);
+        }
+
+        .pedal-screw::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 4px;
+            height: 1px;
+            background: rgba(0, 0, 0, 0.7);
+            transform: translate(-50%, -50%) rotate(45deg);
+        }
+
+        .pedal-screw.tl { top: 5px; left: 5px; }
+        .pedal-screw.tr { top: 5px; right: 5px; }
+        .pedal-screw.bl { bottom: 5px; left: 5px; }
+        .pedal-screw.br { bottom: 5px; right: 5px; }
+
+        .pedal-title {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #d4d4d8;
+            text-shadow: 0 1px 0 rgba(0, 0, 0, 0.8);
+            margin-top: 4px;
+        }
+
+        .pedal-led {
+            position: absolute;
+            top: 8px;
+            right: 24px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #444 0%, #1a1a1a 100%);
+            box-shadow: 
+                inset 0 0 2px rgba(0, 0, 0, 0.8),
+                0 0 0 1.5px rgba(0, 0, 0, 0.6);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .pedal-led.on {
+            background: radial-gradient(circle at 30% 30%, var(--led-bright, #ffaa00) 0%, var(--led-color, #ff6600) 100%);
+            box-shadow: 
+                inset 0 0 2px rgba(255, 255, 255, 0.5),
+                0 0 8px var(--led-glow, rgba(255, 102, 0, 0.8)),
+                0 0 0 1.5px rgba(0, 0, 0, 0.6);
+        }
+
+        /* KNOB - Rotative control */
+        .knob-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .knob {
+            position: relative;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 35% 30%, #4a4f5a 0%, #2a2f3a 60%, #1a1f2a 100%);
+            box-shadow: 
+                inset 0 -3px 6px rgba(0, 0, 0, 0.5),
+                inset 0 2px 3px rgba(255, 255, 255, 0.15),
+                0 3px 5px rgba(0, 0, 0, 0.4),
+                0 1px 2px rgba(0, 0, 0, 0.6);
+            cursor: ns-resize;
+            border: 1px solid rgba(0, 0, 0, 0.5);
+            transition: transform 0.05s ease;
+        }
+
+        .knob::before {
+            content: '';
+            position: absolute;
+            top: 4px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 3px;
+            height: 12px;
+            background: linear-gradient(180deg, #ffffff 0%, #888 100%);
+            border-radius: 2px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .knob::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 35% 30%, #555 0%, #333 100%);
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+            pointer-events: none;
+        }
+
+        .knob:hover {
+            box-shadow: 
+                inset 0 -3px 6px rgba(0, 0, 0, 0.5),
+                inset 0 2px 3px rgba(255, 255, 255, 0.2),
+                0 3px 8px rgba(0, 0, 0, 0.5),
+                0 1px 2px rgba(0, 0, 0, 0.6),
+                0 0 0 2px rgba(99, 102, 241, 0.3);
+        }
+
+        .knob-label {
+            font-size: 8px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: rgba(255, 255, 255, 0.5);
+            text-align: center;
+        }
+
+        .knob-value {
+            font-size: 9px;
+            color: rgba(255, 255, 255, 0.7);
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 500;
+            min-width: 24px;
+            text-align: center;
+        }
+
+        .pedal-knobs {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 6px;
+        }
+
+        /* Pedal color variants */
+        .pedal.purple { background: linear-gradient(180deg, #4a3563 0%, #2d1f3d 100%); }
+        .pedal.purple .pedal-title { color: #d4b4ed; }
+        .pedal.purple .pedal-led { --led-color: #c084fc; --led-bright: #e0c4ff; --led-glow: rgba(192, 132, 252, 0.8); }
+
+        .pedal.orange { background: linear-gradient(180deg, #7c3a1f 0%, #4d1f0e 100%); }
+        .pedal.orange .pedal-title { color: #fed7aa; }
+        .pedal.orange .pedal-led { --led-color: #f97316; --led-bright: #fdba74; --led-glow: rgba(249, 115, 22, 0.8); }
+
+        .pedal.green { background: linear-gradient(180deg, #2a4d2a 0%, #1a3520 100%); }
+        .pedal.green .pedal-title { color: #bbf7d0; }
+        .pedal.green .pedal-led { --led-color: #22c55e; --led-bright: #86efac; --led-glow: rgba(34, 197, 94, 0.8); }
+
+        .pedal.blue { background: linear-gradient(180deg, #1e3a5f 0%, #0f2240 100%); }
+        .pedal.blue .pedal-title { color: #bfdbfe; }
+        .pedal.blue .pedal-led { --led-color: #3b82f6; --led-bright: #93c5fd; --led-glow: rgba(59, 130, 246, 0.8); }
+
+        .pedal.grey { background: linear-gradient(180deg, #3a3f4a 0%, #1a1f2a 100%); }
+        .pedal.grey .pedal-title { color: #d4d4d8; }
+
+        /* Pedal foot switch (for bypass) */
+        .pedal-footswitch {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #4a4f5a 0%, #2a2f3a 70%, #1a1f2a 100%);
+            box-shadow: 
+                inset 0 -3px 8px rgba(0, 0, 0, 0.6),
+                inset 0 2px 3px rgba(255, 255, 255, 0.15),
+                0 4px 8px rgba(0, 0, 0, 0.5);
+            border: 2px solid rgba(0, 0, 0, 0.6);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.1s ease;
+        }
+
+        .pedal-footswitch:active {
+            box-shadow: 
+                inset 0 3px 8px rgba(0, 0, 0, 0.7),
+                inset 0 -1px 2px rgba(255, 255, 255, 0.1),
+                0 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .pedal-select {
+            background: linear-gradient(180deg, #2a2f3a 0%, #1a1f2a 100%);
+            border: 1px solid rgba(0, 0, 0, 0.5);
+            color: #ffffff;
+            font-size: 10px;
+            font-weight: 500;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
+            font-family: inherit;
+            text-align: center;
+        }
+
+        .pedal-select option {
+            background: #1a1f2a;
+            color: #ffffff;
         }
 
         .container {
             display: grid;
-            grid-template-rows: 60px 50px 1fr 240px;
+            grid-template-rows: 48px 40px 1fr auto;
             height: 100vh;
             gap: 0;
+            overflow: hidden;
         }
 
         /* HEADER */
         header {
-            background: linear-gradient(to right, var(--bg-panel), var(--bg-dark));
-            border-bottom: 2px solid var(--accent);
-            padding: 0 20px;
+            background: var(--bg-panel);
+            border-bottom: 1px solid var(--border);
+            padding: 0 24px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            box-shadow: 0 4px 20px rgba(0, 255, 136, 0.1);
         }
 
         .header-title {
             font-size: 18px;
             font-weight: 700;
-            letter-spacing: 3px;
-            text-transform: uppercase;
+            letter-spacing: -0.5px;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-title::before {
+            content: '◆';
             color: var(--accent);
-            text-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+            font-size: 16px;
         }
 
         .header-controls {
             display: flex;
-            gap: 15px;
+            gap: 12px;
             align-items: center;
+            font-size: 13px;
+            color: var(--text-secondary);
         }
 
         .btn {
@@ -77,44 +368,48 @@
             padding: 8px 16px;
             cursor: pointer;
             font-family: inherit;
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: all 0.2s ease;
-            border-radius: 2px;
+            font-size: 13px;
+            letter-spacing: 0;
+            transition: all 0.15s ease;
+            border-radius: 6px;
+            font-weight: 500;
         }
 
         .btn:hover {
-            background: var(--accent);
-            color: var(--bg-dark);
+            background: var(--bg-lighter);
             border-color: var(--accent);
-            box-shadow: 0 0 15px rgba(0, 255, 136, 0.4);
+            color: var(--text-primary);
+        }
+
+        .btn:active {
+            transform: scale(0.98);
         }
 
         .btn.danger {
             color: var(--danger);
-            border-color: var(--danger);
+            border-color: var(--border);
         }
 
         .btn.danger:hover {
             background: var(--danger);
-            color: var(--bg-dark);
+            color: #ffffff;
+            border-color: var(--danger);
         }
 
         /* REC Button Pulse Animation */
         @keyframes pulse {
             0%, 100% {
-                box-shadow: 0 0 0 0 rgba(255, 51, 102, 0.7);
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
             }
             50% {
-                box-shadow: 0 0 0 15px rgba(255, 51, 102, 0);
+                box-shadow: 0 0 0 15px rgba(239, 68, 68, 0);
             }
         }
 
         #recBtn.recording {
             animation: pulse 1.5s infinite;
-            background: #ff3366 !important;
-            border-color: #ff3366 !important;
+            background: var(--danger) !important;
+            border-color: var(--danger) !important;
             color: #ffffff !important;
         }
 
@@ -124,66 +419,60 @@
             background: var(--bg-panel);
             border-bottom: 1px solid var(--border);
             gap: 0;
-            height: 50px;
+            height: 44px;
+            padding: 0 12px;
         }
 
         .tab-btn {
-            flex: 1;
-            padding: 0;
-            background: var(--bg-panel);
+            flex: 0 1 auto;
+            padding: 0 28px;
+            background: transparent;
             border: none;
             border-bottom: 2px solid transparent;
-            color: var(--text-primary);
+            color: var(--text-secondary);
             cursor: pointer;
             font-family: inherit;
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: all 0.2s ease;
+            font-size: 13px;
+            letter-spacing: 0;
+            transition: all 0.15s ease;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: 600;
+            font-weight: 500;
         }
 
-        .tab-btn:nth-child(1) {
-            background: #00aaaa; /* CGA Cyan */
-            color: #000000;
-        }
-
-        .tab-btn:nth-child(1):hover {
-            background: #00ffff;
-        }
-
-        .tab-btn:nth-child(1).active {
-            background: #00ffff;
-            color: #000000;
-            border-bottom-color: #000000;
-        }
-
+        .tab-btn:nth-child(1),
         .tab-btn:nth-child(2) {
-            background: #aa00aa; /* CGA Magenta */
-            color: #ffffff;
+            background: transparent;
+            color: var(--text-secondary);
         }
 
+        .tab-btn:nth-child(1):hover,
         .tab-btn:nth-child(2):hover {
-            background: #ff00ff;
+            color: var(--text-primary);
         }
 
+        .tab-btn:nth-child(1).active,
         .tab-btn:nth-child(2).active {
-            background: #ff00ff;
-            color: #000000;
-            border-bottom-color: #000000;
+            background: transparent;
+            color: var(--text-primary);
+            border-bottom-color: var(--accent);
         }
 
         .tabs-content {
             display: none;
             height: 100%;
             overflow: hidden;
+            min-height: 0;
         }
 
         .tabs-content.active {
             display: grid;
+            grid-template-columns: 200px 1fr 300px;
+            grid-template-rows: 1fr;
+            gap: 0;
+            height: 100%;
+            min-height: 0;
         }
 
         /* MAIN CONTENT */
@@ -199,20 +488,24 @@
             background: var(--bg-panel);
             border-right: 1px solid var(--border);
             overflow-y: auto;
-            padding: 15px;
+            overflow-x: hidden;
+            padding: 12px;
+            min-height: 0;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) transparent;
         }
 
         .sidebar-section {
-            margin-bottom: 25px;
+            margin-bottom: 16px;
         }
 
         .sidebar-title {
             font-size: 11px;
             text-transform: uppercase;
-            letter-spacing: 2px;
-            color: var(--accent);
-            margin-bottom: 10px;
-            opacity: 0.7;
+            letter-spacing: 0.8px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            font-weight: 600;
         }
 
         .file-input-wrapper {
@@ -227,32 +520,38 @@
         .file-label {
             display: block;
             background: var(--bg-control);
-            border: 1px dashed var(--accent);
-            padding: 15px;
+            border: 1px dashed var(--border);
+            padding: 14px;
             text-align: center;
             cursor: pointer;
-            transition: all 0.3s ease;
-            border-radius: 2px;
+            transition: all 0.15s ease;
+            border-radius: 8px;
+            font-size: 12px;
+            color: var(--text-secondary);
         }
 
         .file-label:hover {
-            background: rgba(0, 255, 136, 0.05);
+            background: var(--bg-lighter);
             border-color: var(--accent);
+            color: var(--text-primary);
         }
 
         .file-label small {
             display: block;
             font-size: 11px;
             color: var(--text-secondary);
+            margin-top: 4px;
         }
 
         .sample-info {
             background: var(--bg-control);
             border: 1px solid var(--border);
-            padding: 10px;
+            padding: 12px;
             margin-top: 10px;
-            font-size: 11px;
-            border-radius: 2px;
+            font-size: 12px;
+            border-radius: 8px;
+            overflow: hidden;
+            word-break: break-all;
         }
 
         .sample-info div {
@@ -267,26 +566,27 @@
 
         /* WAVEFORM EDITOR */
         .editor {
-            background: linear-gradient(180deg, var(--bg-dark) 0%, #0f0f0f 100%);
-            border-right: 1px solid var(--border);
+            background: var(--bg-dark);
             display: flex;
             flex-direction: column;
-            padding: 15px;
-            gap: 10px;
-            overflow-y: auto;
+            padding: 12px;
+            gap: 8px;
+            min-height: 0;
+            overflow: hidden;
         }
 
         .waveform-container {
             flex: 1;
             background: var(--bg-control);
             border: 1px solid var(--border);
-            border-radius: 2px;
+            border-radius: 3px;
             position: relative;
             overflow: hidden;
             cursor: crosshair;
             min-height: 200px;
             overflow-x: auto;
             overflow-y: hidden;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
         }
 
         canvas {
@@ -307,7 +607,7 @@
         }
 
         .control-group label {
-            font-size: 11px;
+            font-size: 13px;
             color: var(--text-secondary);
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -319,7 +619,7 @@
             flex: 1;
             height: 4px;
             border-radius: 2px;
-            background: var(--grid-color);
+            background: var(--bg-panel);
             outline: none;
             -webkit-appearance: none;
         }
@@ -327,22 +627,28 @@
         input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
-            width: 12px;
-            height: 12px;
+            width: 14px;
+            height: 14px;
             border-radius: 50%;
             background: var(--accent);
             cursor: pointer;
-            box-shadow: 0 0 8px rgba(0, 255, 136, 0.5);
+            transition: all 0.15s ease;
+            border: 2px solid var(--bg-dark);
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: var(--accent-light);
+            transform: scale(1.15);
         }
 
         input[type="range"]::-moz-range-thumb {
-            width: 12px;
-            height: 12px;
+            width: 14px;
+            height: 14px;
             border-radius: 50%;
             background: var(--accent);
             cursor: pointer;
-            border: none;
-            box-shadow: 0 0 8px rgba(0, 255, 136, 0.5);
+            border: 2px solid var(--bg-dark);
+            transition: all 0.15s ease;
         }
 
         /* SLICES LIST */
@@ -350,28 +656,75 @@
             background: var(--bg-panel);
             border-left: 1px solid var(--border);
             overflow-y: auto;
-            padding: 15px;
+            overflow-x: hidden;
+            padding: 12px;
+            min-height: 0;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border) transparent;
+        }
+
+        .sidebar-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 12px;
         }
 
         .slice-item {
             background: var(--bg-control);
             border: 1px solid var(--border);
-            padding: 10px;
-            margin-bottom: 10px;
-            border-radius: 2px;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 8px;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.15s ease;
+            font-size: 12px;
         }
 
         .slice-item:hover {
             border-color: var(--accent);
-            box-shadow: 0 0 10px rgba(0, 255, 136, 0.2);
+            background: var(--bg-lighter);
         }
 
         .slice-item.active {
-            background: rgba(0, 255, 136, 0.1);
+            background: var(--bg-lighter);
             border-color: var(--accent);
-            box-shadow: inset 0 0 10px rgba(0, 255, 136, 0.1);
+        }
+
+        .slice-item.editing {
+            background: rgba(99, 102, 241, 0.1);
+            border-color: var(--accent);
+        }
+
+        .slice-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            padding: 0 0 8px 0;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 8px;
+        }
+
+        .slice-toggle {
+            font-size: 10px;
+            color: var(--text-secondary);
+            min-width: 20px;
+            text-align: center;
+            transition: transform 0.2s ease;
+        }
+
+        .slice-item.collapsed .slice-toggle {
+            transform: rotate(-90deg);
+        }
+
+        .slice-item.collapsed .slice-params,
+        .slice-item.collapsed .slice-checkbox,
+        .slice-item.collapsed .slice-mode,
+        .slice-item.collapsed .slice-actions {
+            display: none;
         }
 
         .slice-header {
@@ -382,16 +735,17 @@
         }
 
         .slice-name {
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 600;
-            color: var(--accent);
         }
 
         .slice-key {
-            font-size: 10px;
+            font-size: 11px;
+            font-family: 'JetBrains Mono', monospace;
             background: var(--bg-panel);
-            padding: 2px 6px;
-            border-radius: 2px;
+            color: var(--text-secondary);
+            padding: 3px 8px;
+            border-radius: 4px;
             color: var(--text-secondary);
         }
 
@@ -407,7 +761,7 @@
             background: rgba(0, 255, 136, 0.2);
             border: 1px solid var(--accent);
             color: var(--accent);
-            font-size: 9px;
+            font-size: 11px;
             cursor: pointer;
             border-radius: 2px;
             transition: all 0.2s ease;
@@ -432,7 +786,7 @@
             display: grid;
             grid-template-columns: 1fr;
             gap: 6px;
-            font-size: 10px;
+            font-size: 14px;
         }
 
         .param-slider {
@@ -455,7 +809,7 @@
             min-width: 30px;
             text-align: right;
             color: var(--accent);
-            font-size: 9px;
+            font-size: 11px;
         }
 
         .slice-checkbox {
@@ -463,7 +817,7 @@
             align-items: center;
             gap: 8px;
             margin-top: 8px;
-            font-size: 10px;
+            font-size: 14px;
             color: var(--text-secondary);
         }
 
@@ -486,7 +840,7 @@
             background: var(--bg-panel);
             border: 1px solid var(--border);
             color: var(--text-secondary);
-            font-size: 9px;
+            font-size: 11px;
             cursor: pointer;
             border-radius: 2px;
             transition: all 0.2s ease;
@@ -518,7 +872,7 @@
             background: var(--bg-panel);
             border: 1px solid var(--border);
             color: var(--text-secondary);
-            font-size: 9px;
+            font-size: 11px;
             cursor: pointer;
             border-radius: 2px;
             transition: all 0.2s ease;
@@ -535,10 +889,11 @@
             border-top: 1px solid var(--border);
             padding: 10px 15px;
             display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 15px;
-            min-height: 140px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            min-height: 120px;
             overflow: visible;
+            max-height: 180px;
         }
 
         .effect {
@@ -552,7 +907,7 @@
         }
 
         .effect-title {
-            font-size: 10px;
+            font-size: 14px;
             color: var(--accent);
             text-transform: uppercase;
             font-weight: 600;
@@ -566,7 +921,7 @@
         }
 
         .effect-control label {
-            font-size: 8px;
+            font-size: 10px;
             color: var(--text-secondary);
             text-transform: uppercase;
         }
@@ -587,7 +942,7 @@
         }
 
         .effect-value {
-            font-size: 8px;
+            font-size: 10px;
             color: var(--accent);
             text-align: center;
         }
@@ -614,7 +969,7 @@
             cursor: pointer;
             border-radius: 4px;
             transition: all 0.15s ease;
-            font-size: 12px;
+            font-size: 14px;
             font-weight: 600;
             user-select: none;
             min-height: 50px;
@@ -627,7 +982,7 @@
 
         .key small {
             display: block;
-            font-size: 9px;
+            font-size: 11px;
             color: #aaaaaa;
             margin-top: 4px;
         }
@@ -655,7 +1010,7 @@
             position: fixed;
             bottom: 20px;
             right: 20px;
-            font-size: 11px;
+            font-size: 13px;
             color: var(--text-secondary);
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -679,9 +1034,53 @@
 
         .sequencer-header {
             display: grid;
-            grid-template-columns: 80px 1fr 100px;
-            gap: 10px;
+            grid-template-columns: 80px 150px 1fr 200px;
+            gap: 12px;
             align-items: center;
+            padding: 8px 12px;
+        }
+
+        .sequencer-play {
+            display: flex;
+            gap: 6px;
+            justify-content: flex-end;
+        }
+
+        .sequencer-play button {
+            width: 60px;
+            padding: 8px 4px;
+            background: var(--bg-control);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            cursor: pointer;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 12px;
+            transition: all 0.15s ease;
+            font-family: inherit;
+        }
+
+        .sequencer-play button:hover {
+            background: var(--bg-lighter);
+            border-color: var(--accent);
+        }
+
+        .sequencer-play button.active {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+
+        .sequencer-grid {
+            background: var(--bg-control);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+            overflow-y: auto;
         }
 
         .swing-control {
@@ -691,7 +1090,7 @@
         }
 
         .swing-control label {
-            font-size: 10px;
+            font-size: 14px;
             color: var(--text-secondary);
             text-transform: uppercase;
         }
@@ -726,70 +1125,71 @@
             box-shadow: 0 0 8px rgba(0, 255, 136, 0.5);
         }
 
-        .sequencer-play {
-            display: flex;
-            gap: 5px;
-        }
-
-        .sequencer-play button {
-            flex: 1;
-            padding: 8px;
-            background: rgba(0, 255, 136, 0.2);
-            border: 1px solid var(--accent);
-            color: var(--accent);
-            cursor: pointer;
-            border-radius: 2px;
-            font-weight: 600;
-            transition: all 0.2s ease;
-        }
-
-        .sequencer-play button:hover {
-            background: var(--accent);
-            color: var(--bg-dark);
-        }
-
-        .sequencer-play button.active {
-            background: var(--accent);
-            color: var(--bg-dark);
-        }
-
-        .sequencer-grid {
-            background: var(--bg-control);
-            border: 1px solid var(--border);
-            border-radius: 2px;
-            padding: 10px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            flex: 1;
-            overflow-y: auto;
-        }
-
         .sequencer-row {
             display: grid;
-            grid-template-columns: 80px repeat(16, 1fr);
+            grid-template-columns: 100px 50px repeat(16, 1fr);
             gap: 4px;
             align-items: center;
+            max-height: 24px;
         }
 
         .sequencer-label {
-            font-size: 10px;
-            color: var(--accent);
+            font-size: 13px;
+            color: var(--text-primary);
             font-weight: 600;
-            text-transform: uppercase;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
         }
 
+        .sequencer-controls {
+            display: flex;
+            gap: 3px;
+            justify-content: flex-end;
+        }
+
+        .seq-mute, .seq-solo {
+            width: 22px;
+            height: 22px;
+            border: 1px solid var(--border);
+            background: var(--bg-control);
+            color: var(--text-secondary);
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: inherit;
+        }
+
+        .seq-mute:hover, .seq-solo:hover {
+            border-color: var(--accent);
+            color: var(--text-primary);
+        }
+
+        .seq-mute.active {
+            background: var(--danger);
+            color: #fff;
+            border-color: var(--danger);
+        }
+
+        .seq-solo.active {
+            background: var(--warning);
+            color: #000;
+            border-color: var(--warning);
+        }
+
         .sequencer-step {
-            aspect-ratio: 1;
+            height: 24px;
+            min-width: 24px;
             background: var(--bg-panel);
             border: 1px solid var(--border);
             cursor: pointer;
-            border-radius: 2px;
+            border-radius: 4px;
             transition: all 0.1s ease;
-            min-width: 30px;
         }
 
         .sequencer-step:hover {
@@ -799,11 +1199,11 @@
         .sequencer-step.active {
             background: var(--accent);
             border-color: var(--accent);
-            box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+            box-shadow: 0 0 8px rgba(99, 102, 241, 0.4);
         }
 
         .sequencer-step.playing {
-            box-shadow: 0 0 15px rgba(0, 255, 136, 0.8), inset 0 0 5px rgba(0, 255, 136, 0.5);
+            box-shadow: 0 0 12px rgba(99, 102, 241, 0.8), inset 0 0 4px rgba(99, 102, 241, 0.5);
         }
 
         /* SCROLLBAR */
@@ -829,17 +1229,13 @@
     <div class="container">
         <!-- HEADER -->
         <header>
-            <div class="header-title">◆ SLICER</div>
+            <div class="header-title">SLICER</div>
             <div class="header-controls">
-                <span style="font-size: 12px; color: var(--text-secondary);">
+                <span style="font-size: 14px; color: var(--text-secondary);">
                     <span id="sliceCount">0</span> slices
                 </span>
-                <button class="btn" id="recBtn" style="color: #ff3366; border-color: #ff3366;">● REC</button>
-                <button class="btn" id="detectBtn">Auto Detect</button>
                 <button class="btn" id="saveBtn">Save Project</button>
                 <button class="btn" id="loadBtn">Load Project</button>
-                <button class="btn" id="exportBtn">Export WAV</button>
-                <button class="btn" id="clearBtn">Clear</button>
                 <input type="file" id="projectFile" accept=".zip" style="display: none;">
             </div>
         </header>
@@ -851,39 +1247,71 @@
         </div>
 
         <!-- EDITOR TAB -->
-        <div id="editor-tab" class="tabs-content active" style="grid-template-columns: 250px 1fr 300px;">
-            <!-- SIDEBAR LEFT: Sample Browser -->
+        <div id="editor-tab" class="tabs-content active" style="grid-template-columns: 200px 1fr 300px;">
+            <!-- SIDEBAR LEFT: Sample Browser & Controls -->
             <div class="sidebar-left">
                 <div class="sidebar-section">
                     <div class="sidebar-title">Audio File</div>
-                    <div class="file-input-wrapper">
-                        <input type="file" id="audioFile" accept="audio/*">
-                        <label for="audioFile" class="file-label">
-                            <strong>+</strong>
-                            <small>Load sample</small>
-                        </label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
+                        <div class="file-input-wrapper" style="margin: 0;">
+                            <input type="file" id="audioFile" accept="audio/*">
+                            <label for="audioFile" class="file-label" style="font-size: 11px; padding: 12px 8px; min-height: auto;">
+                                <strong style="font-size: 16px;">+</strong>
+                                <small>Import</small>
+                            </label>
+                        </div>
+                        <button class="btn" id="recBtn" style="color: #ff3366; border-color: #ff3366; width: 100%; padding: 0; height: auto; font-size: 11px;">
+                            <strong style="font-size: 16px;">●</strong>
+                            <small>REC</small>
+                        </button>
                     </div>
                     <div id="sampleInfo" class="sample-info" style="display: none;">
                         <div><span class="label">File:</span> <span id="fileName">-</span></div>
                         <div><span class="label">Duration:</span> <span id="duration">-</span>s</div>
                         <div><span class="label">Sample Rate:</span> <span id="sampleRate">-</span>Hz</div>
+                        <button id="deleteSampleBtn" style="width: 100%; margin-top: 12px; background: rgba(255, 51, 102, 0.3); border: 1px solid #ff3366; color: #ff3366; padding: 10px; border-radius: 2px; cursor: pointer; font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; transition: all 0.2s ease;">🗑 Delete</button>
                     </div>
                 </div>
 
                 <div class="sidebar-section">
                     <div class="sidebar-title">Transient Sensitivity</div>
-                    <div class="control-group">
-                        <input type="range" id="sensitivity" min="0.1" max="1" step="0.05" value="0.5" style="width: 100%;">
+                    <div class="control-group" style="background: var(--bg-control); padding: 8px; border-radius: 6px;">
+                        <input type="range" id="sensitivity" min="0.1" max="1" step="0.05" value="0.5" style="width: 100%; height: 6px; background: var(--bg-panel); border-radius: 3px; outline: none; -webkit-appearance: none; appearance: none; cursor: pointer;">
                     </div>
-                    <div style="text-align: center; font-size: 11px; color: var(--accent); margin-top: 8px;">
+                    <div style="text-align: center; font-size: 13px; color: var(--accent); margin-top: 8px;">
                         <span id="sensitivityValue">50%</span>
                     </div>
+                    <!-- Buttons moved here from header -->
+                    <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 15px;">
+                        <button class="btn" id="detectBtn" style="width: 100%; padding: 10px; font-size: 12px;">Auto Detect</button>
+                        <button class="btn" id="clearBtn" style="width: 100%; padding: 10px; font-size: 12px;">Clear</button>
+                        <button class="btn" id="exportBtn" style="width: 100%; padding: 10px; font-size: 12px;">Export WAV</button>
+                    </div>
+                </div>
+
+                <!-- MIDI Mode Switch -->
+                <div class="sidebar-section">
+                    <div class="sidebar-title">MIDI Mode</div>
+                    <div style="display: flex; gap: 4px; background: var(--bg-control); padding: 4px; border-radius: 6px;">
+                        <button id="midiModeTrigger" class="btn" style="flex: 1; padding: 8px; font-size: 11px; background: var(--accent); color: #fff; border-color: var(--accent);">Trigger</button>
+                        <button id="midiModeSampler" class="btn" style="flex: 1; padding: 8px; font-size: 11px;">Sampler</button>
+                    </div>
+                    <div style="font-size: 10px; color: var(--text-secondary); text-align: center; margin-top: 6px;" id="midiModeHint">Each key triggers a different slice</div>
+                </div>
+
+                <!-- MIDI Status -->
+                <div class="sidebar-section" style="margin-top: auto; padding-top: 12px; border-top: 1px solid var(--border);">
+                    <div id="midiStatus" style="font-size: 11px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; justify-content: center; transition: all 0.3s ease;">
+                        <span id="midiStatusDot" style="width: 8px; height: 8px; background: var(--text-secondary); border-radius: 50%; display: inline-block; transition: all 0.15s ease;"></span>
+                        <span id="midiStatusText">MIDI: Disconnected</span>
+                    </div>
+                    <div id="midiDeviceInfo" style="font-size: 10px; color: var(--text-secondary); text-align: center; margin-top: 4px; opacity: 0.7;"></div>
                 </div>
             </div>
 
             <!-- EDITOR: Waveform + Slices -->
             <div class="editor">
-                <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px;">Waveform</div>
+                <div style="font-size: 13px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px;">Waveform</div>
                 <div class="waveform-container">
                     <canvas id="waveform"></canvas>
                 </div>
@@ -891,17 +1319,128 @@
                     <div class="control-group">
                         <label>Zoom</label>
                         <input type="range" id="zoom" min="1" max="10" step="0.5" value="1">
-                        <span style="color: var(--accent); font-size: 10px; min-width: 25px;"><span id="zoomValue">1</span>x</span>
+                        <span style="color: var(--accent); font-size: 14px; min-width: 25px;"><span id="zoomValue">1</span>x</span>
                     </div>
                     <div class="control-group">
                         <label>Volume</label>
                         <input type="range" id="masterVolume" min="0" max="1" step="0.01" value="0.7">
-                        <span style="color: var(--accent); font-size: 10px; min-width: 25px;"><span id="volumeValue">70</span>%</span>
+                        <span style="color: var(--accent); font-size: 14px; min-width: 25px;"><span id="volumeValue">70</span>%</span>
+                    </div>
+                </div>
+                <!-- EFFECTS RACK - Pedais skeuomórficos com knobs -->
+                <div class="effects-panel" style="grid-template-columns: repeat(5, 1fr); padding: 12px 10px; gap: 10px; min-height: 170px; max-height: 170px; overflow: visible; background: linear-gradient(180deg, #15191f 0%, #0a0d12 100%); border-radius: 6px; box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.5);">
+                    
+                    <!-- COMPRESSOR PEDAL -->
+                    <div class="pedal purple" id="compPedal">
+                        <div class="pedal-screw tl"></div>
+                        <div class="pedal-screw tr"></div>
+                        <div class="pedal-screw bl"></div>
+                        <div class="pedal-screw br"></div>
+                        <div class="pedal-led on" id="compToggle" onclick="state.effects.compressor.enabled = !state.effects.compressor.enabled; this.classList.toggle('on');"></div>
+                        <div class="pedal-title">Comp</div>
+                        <div class="pedal-knobs">
+                            <div class="knob-container">
+                                <div class="knob" data-target="compRatio" data-min="1" data-max="8" data-value="1"></div>
+                                <input type="range" id="compRatio" min="1" max="8" step="0.1" value="1" style="display: none;">
+                                <div class="knob-value"><span id="compRatioVal">1.0</span></div>
+                                <div class="knob-label">Ratio</div>
+                            </div>
+                            <div class="knob-container">
+                                <div class="knob" data-target="compMix" data-min="0" data-max="100" data-value="0"></div>
+                                <input type="range" id="compMix" min="0" max="100" step="1" value="0" style="display: none;">
+                                <div class="knob-value"><span id="compMixVal">0</span>%</div>
+                                <div class="knob-label">Mix</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- OVERDRIVE PEDAL -->
+                    <div class="pedal orange" id="overPedal">
+                        <div class="pedal-screw tl"></div>
+                        <div class="pedal-screw tr"></div>
+                        <div class="pedal-screw bl"></div>
+                        <div class="pedal-screw br"></div>
+                        <div class="pedal-led on" id="overToggle" onclick="state.effects.overdrive.enabled = !state.effects.overdrive.enabled; this.classList.toggle('on');"></div>
+                        <div class="pedal-title">Drive</div>
+                        <div class="pedal-knobs">
+                            <div class="knob-container">
+                                <div class="knob" data-target="overDrive" data-min="0" data-max="100" data-value="0"></div>
+                                <input type="range" id="overDrive" min="0" max="100" step="1" value="0" style="display: none;">
+                                <div class="knob-value"><span id="overDriveVal">0</span>%</div>
+                                <div class="knob-label">Drive</div>
+                            </div>
+                            <div class="knob-container">
+                                <div class="knob" data-target="overMix" data-min="0" data-max="100" data-value="0"></div>
+                                <input type="range" id="overMix" min="0" max="100" step="1" value="0" style="display: none;">
+                                <div class="knob-value"><span id="overMixVal">0</span>%</div>
+                                <div class="knob-label">Mix</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- DECIMATOR PEDAL -->
+                    <div class="pedal green" id="decimPedal">
+                        <div class="pedal-screw tl"></div>
+                        <div class="pedal-screw tr"></div>
+                        <div class="pedal-screw bl"></div>
+                        <div class="pedal-screw br"></div>
+                        <div class="pedal-led on" id="decimToggle" onclick="state.effects.decimator.enabled = !state.effects.decimator.enabled; this.classList.toggle('on');"></div>
+                        <div class="pedal-title">Bits</div>
+                        <div class="pedal-knobs">
+                            <div class="knob-container">
+                                <div class="knob" data-target="decimBits" data-min="2" data-max="16" data-value="16"></div>
+                                <input type="range" id="decimBits" min="2" max="16" step="1" value="16" style="display: none;">
+                                <div class="knob-value"><span id="decimBitsVal">16</span></div>
+                                <div class="knob-label">Depth</div>
+                            </div>
+                            <div class="knob-container">
+                                <div class="knob" data-target="decimMix" data-min="0" data-max="100" data-value="0"></div>
+                                <input type="range" id="decimMix" min="0" max="100" step="1" value="0" style="display: none;">
+                                <div class="knob-value"><span id="decimMixVal">0</span>%</div>
+                                <div class="knob-label">Mix</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- REVERB PEDAL -->
+                    <div class="pedal blue" id="reverbPedal">
+                        <div class="pedal-screw tl"></div>
+                        <div class="pedal-screw tr"></div>
+                        <div class="pedal-screw bl"></div>
+                        <div class="pedal-screw br"></div>
+                        <div class="pedal-led on" id="reverbToggle" onclick="state.effects.reverb.enabled = !state.effects.reverb.enabled; this.classList.toggle('on');"></div>
+                        <div class="pedal-title">Reverb</div>
+                        <div class="pedal-knobs">
+                            <div class="knob-container" style="justify-content: center;">
+                                <select id="reverbMode" class="pedal-select">
+                                    <option value="short">Short</option>
+                                    <option value="long">Long</option>
+                                </select>
+                                <div class="knob-label">Mode</div>
+                            </div>
+                            <div class="knob-container">
+                                <div class="knob" data-target="reverbMix" data-min="0" data-max="100" data-value="0"></div>
+                                <input type="range" id="reverbMix" min="0" max="100" step="1" value="0" style="display: none;">
+                                <div class="knob-value"><span id="reverbMixVal">0</span>%</div>
+                                <div class="knob-label">Mix</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- MASTER BYPASS PEDAL -->
+                    <div class="pedal grey" style="justify-content: center;">
+                        <div class="pedal-screw tl"></div>
+                        <div class="pedal-screw tr"></div>
+                        <div class="pedal-screw bl"></div>
+                        <div class="pedal-screw br"></div>
+                        <div class="pedal-title">Bypass</div>
+                        <div class="pedal-footswitch" id="bypassFootswitch" onclick="document.getElementById('effectsBypass').click();">
+                            <input type="checkbox" id="effectsBypass" style="display: none;">
+                            <span>ON</span>
+                        </div>
                     </div>
                 </div>
             </div>
-
-            <!-- SIDEBAR RIGHT: Slices List -->
             <div class="sidebar-right">
                 <div class="sidebar-title">Slices</div>
                 <div id="slicesList"></div>
@@ -910,11 +1449,11 @@
 
         <!-- SEQUENCER TAB -->
         <div id="sequencer-tab" class="tabs-content" style="grid-template-columns: 1fr;">
-            <div class="sequencer-container">
+            <div class="sequencer-container" style="overflow: hidden; display: grid; grid-template-rows: auto 1fr;">
                 <div class="sequencer-header">
                     <div class="bpm-control">
                         <label>BPM</label>
-                        <input type="number" id="bpmInput" min="40" max="300" value="120" style="width: 100%; padding: 4px; background: var(--bg-control); border: 1px solid var(--border); color: var(--accent); border-radius: 2px; font-family: inherit; font-size: 12px;">
+                        <input type="number" id="bpmInput" min="40" max="300" value="120" style="width: 100%; padding: 4px; background: var(--bg-control); border: 1px solid var(--border); color: var(--accent); border-radius: 2px; font-family: inherit; font-size: 14px;">
                     </div>
                     <div class="swing-control">
                         <label>SWING</label>
@@ -923,123 +1462,109 @@
                     <div class="sequencer-play">
                         <button id="seqPlayBtn">▶</button>
                         <button id="seqStopBtn">■</button>
-                        <button id="seqExportBtn" style="background: rgba(0, 255, 136, 0.2); border: 1px solid var(--accent); color: var(--accent); flex: 1; padding: 8px; cursor: pointer; border-radius: 2px; font-weight: 600; transition: all 0.2s ease; text-transform: uppercase; font-size: 9px; letter-spacing: 0.5px;">EXP</button>
+                        <button id="seqExportBtn" class="btn" style="padding: 8px 20px; font-size: 12px;">Export</button>
                     </div>
                 </div>
-                <div class="sequencer-grid" id="sequencerGrid"></div>
+                <div class="sequencer-grid" id="sequencerGrid" style="flex: 1; overflow: auto;"></div>
             </div>
         </div>
 
-        <!-- EFFECTS PANEL -->
-        <div class="effects-panel">
-            <!-- Compressor -->
-            <div class="effect">
-                <div class="effect-title">Compressor</div>
-                <div class="effect-control">
-                    <label>Ratio</label>
-                    <input type="range" id="compRatio" min="1" max="8" step="0.1" value="1">
-                    <span class="effect-value"><span id="compRatioVal">1</span>:1</span>
-                </div>
-                <div class="effect-control">
-                    <label>Mix</label>
-                    <input type="range" id="compMix" min="0" max="100" step="1" value="0">
-                    <span class="effect-value"><span id="compMixVal">0</span>%</span>
-                </div>
-            </div>
-
-            <!-- Overdrive -->
-            <div class="effect">
-                <div class="effect-title">Overdrive</div>
-                <div class="effect-control">
-                    <label>Drive</label>
-                    <input type="range" id="overDrive" min="0" max="100" step="1" value="0">
-                    <span class="effect-value"><span id="overDriveVal">0</span>%</span>
-                </div>
-                <div class="effect-control">
-                    <label>Mix</label>
-                    <input type="range" id="overMix" min="0" max="100" step="1" value="0">
-                    <span class="effect-value"><span id="overMixVal">0</span>%</span>
-                </div>
-            </div>
-
-            <!-- Decimator -->
-            <div class="effect">
-                <div class="effect-title">Decimator</div>
-                <div class="effect-control">
-                    <label>Bits</label>
-                    <input type="range" id="decimBits" min="2" max="16" step="1" value="16">
-                    <span class="effect-value"><span id="decimBitsVal">16</span>bit</span>
-                </div>
-                <div class="effect-control">
-                    <label>Mix</label>
-                    <input type="range" id="decimMix" min="0" max="100" step="1" value="0">
-                    <span class="effect-value"><span id="decimMixVal">0</span>%</span>
-                </div>
-            </div>
-
-            <!-- Reverb -->
-            <div class="effect">
-                <div class="effect-title">Reverb</div>
-                <div class="effect-control">
-                    <label>Mode</label>
-                    <select id="reverbMode" style="width: 100%; padding: 2px; background: var(--bg-panel); border: 1px solid var(--border); color: var(--text-secondary); font-size: 8px; border-radius: 2px;">
-                        <option value="plate">Plate</option>
-                        <option value="spring">Spring</option>
-                    </select>
-                </div>
-                <div class="effect-control">
-                    <label>Mix</label>
-                    <input type="range" id="reverbMix" min="0" max="100" step="1" value="0">
-                    <span class="effect-value"><span id="reverbMixVal">0</span>%</span>
-                </div>
-            </div>
-
-            <!-- EQ (Bonus) -->
-            <div class="effect">
-                <div class="effect-title">Bypass All</div>
-                <div class="effect-control" style="align-items: center; justify-content: center; flex: 1;">
-                    <input type="checkbox" id="effectsBypass" style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--accent);">
-                </div>
-                <div class="effect-value" style="text-align: center; font-size: 9px;">OFF</div>
-            </div>
+        <!-- FOOTER: Keyboard QWERTY real com 2 linhas -->
+        <div class="footer" style="display: flex; flex-direction: column; padding: 8px 15px; gap: 6px; overflow: visible; background: var(--bg-panel); border-top: 1px solid var(--border); align-items: center; justify-content: center; height: auto;">
+            <!-- Linha de cima: W E T Y U O P (sustenidos) -->
+            <div id="keyboard-black" class="keyboard-black" style="display: flex; gap: 3px; justify-content: center; flex-wrap: wrap;"></div>
+            <!-- Linha de baixo: A S D F G H J K L Ç ª (naturais) -->
+            <div id="keyboard-white" class="keyboard-white" style="display: flex; gap: 3px; justify-content: center; flex-wrap: wrap;"></div>
         </div>
 
-        <!-- KEYBOARD CONTROLLER -->
-        <div class="keyboard" id="keyboard"></div>
     </div>
 
-    <div class="midi-indicator" id="midiStatus">MIDI: Not Connected</div>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" onerror="console.warn('JSZip not loaded')"></script>
     <script>
+        // Fallback se JSZip não carregar
+        if (typeof JSZip === 'undefined') {
+            window.JSZip = class { constructor() { throw new Error('JSZip not available'); } };
+        }
+
+        // === REVERB GLOBAL NODES ===
+        let reverbConvolverNode = null;
+        let reverbWetGainNode = null;
+        let reverbDryGainNode = null;
+
+        function initReverbNodes() {
+            if (reverbConvolverNode) return; // Já inicializado
+            
+            const ctx = initAudioContext();
+            reverbConvolverNode = ctx.createConvolver();
+            reverbWetGainNode = ctx.createGain();
+            reverbDryGainNode = ctx.createGain();
+            
+            // Criar impulse response simples para reverb
+            const impulseLengthSeconds = 2;
+            const impulseLength = ctx.sampleRate * impulseLengthSeconds;
+            const impulseResponse = ctx.createBuffer(2, impulseLength, ctx.sampleRate);
+            const left = impulseResponse.getChannelData(0);
+            const right = impulseResponse.getChannelData(1);
+            
+            // Gerar impulse response (decaying noise)
+            for (let i = 0; i < impulseLength; i++) {
+                const decay = Math.exp(-3 * i / impulseLength); // Decai exponencial
+                left[i] = (Math.random() * 2 - 1) * decay;
+                right[i] = (Math.random() * 2 - 1) * decay;
+            }
+            
+            reverbConvolverNode.buffer = impulseResponse;
+            
+            // Conectar ao destino
+            reverbDryGainNode.connect(ctx.destination);
+            reverbWetGainNode.connect(reverbConvolverNode);
+            reverbConvolverNode.connect(ctx.destination);
+            
+            // Mix padrão
+            updateReverbMix();
+        }
+
+        function updateReverbMix() {
+            if (!reverbWetGainNode || !reverbDryGainNode) return;
+            
+            const mix = state.effects.reverb.mix || 0;
+            reverbWetGainNode.gain.value = mix / 100;
+            reverbDryGainNode.gain.value = (100 - mix) / 100;
+        }
+
         // === CORE STATE ===
         const state = {
             audioBuffer: null,
             audioContext: null,
             slices: [],
             selectedSlice: null,
+            selectedSliceForEditing: null, // Slice selecionada para editar in/out
             playingSources: {},
             pressedKeys: {},
             fullAudioSource: null,
             zoom: 1,
-            keyBindings: ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', 'A', 'S', 'D', 'F', 'G', 'H'],
+            keyBindings: ['A', 'W', 'S', 'E', 'D', 'F', 'T', 'G', 'Y', 'H', 'U', 'J', 'K', 'O', 'L', 'P', 'Ç', 'Á', 'ª'],
             noteOffset: 60,
             colors: ['#ff006e', '#00f5ff', '#ffbe0b', '#8338ec', '#fb5607', '#3a86ff', '#06ffa5', '#ff006e'],
             draggingSlice: null,
             dragMode: null,
+            dragSliceRef: null,
             // Sequencer
             bpm: 120,
             isSequencerPlaying: false,
             sequencerPattern: {}, // { sliceIdx: { 0: 'empty'|'trigger'|'flame', 1: ..., ... } }
+            sequencerMute: {}, // { sliceIdx: true/false }
+            sequencerSolo: {}, // { sliceIdx: true/false }
+            midiMode: 'trigger', // 'trigger' ou 'sampler'
             sequencerPosition: 0,
             sequencerIntervalId: null,
             swingAmount: 0, // 0-100%
             // Effects
             effects: {
-                compressor: { ratio: 1, mix: 0 },
-                overdrive: { drive: 0, mix: 0 },
-                decimator: { bits: 16, mix: 0 },
-                reverb: { mode: 'plate', mix: 0 },
+                compressor: { ratio: 1, mix: 0, enabled: true },
+                overdrive: { drive: 0, mix: 0, enabled: true },
+                decimator: { bits: 16, mix: 0, enabled: true },
+                reverb: { mode: 'short', mix: 0, enabled: true },
                 bypass: false
             },
             // Recording
@@ -1070,6 +1595,7 @@
         function initAudioContext() {
             if (!state.audioContext) {
                 state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                initReverbNodes(); // Inicializar reverb quando context é criado
             }
             return state.audioContext;
         }
@@ -1094,8 +1620,35 @@
             }
         });
 
+        // DELETE SAMPLE BUTTON
+        document.getElementById('deleteSampleBtn').addEventListener('click', () => {
+            if (confirm('Delete sample? This will clear all slices.')) {
+                state.audioBuffer = null;
+                state.slices = [];
+                state.selectedSliceIdx = -1;
+                document.getElementById('sampleInfo').style.display = 'none';
+                document.getElementById('audioFile').value = '';
+                updateSlicesList();
+                // Clear canvas
+                const canvas = document.getElementById('waveform');
+                const canvasCtx = canvas.getContext('2d');
+                canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+        });
+
         function updateSampleInfo(filename) {
-            document.getElementById('fileName').textContent = filename;
+            // Truncar nomes longos: "longfilename(...).wav"
+            const maxLen = 20;
+            let displayName = filename;
+            if (filename.length > maxLen) {
+                const dotIdx = filename.lastIndexOf('.');
+                const ext = dotIdx > -1 ? filename.slice(dotIdx) : '';
+                const name = dotIdx > -1 ? filename.slice(0, dotIdx) : filename;
+                const keep = maxLen - ext.length - 5; // 5 = "(...)".length
+                displayName = name.slice(0, Math.max(4, keep)) + '(...)' + ext;
+            }
+            document.getElementById('fileName').textContent = displayName;
+            document.getElementById('fileName').title = filename; // Tooltip com nome completo
             document.getElementById('duration').textContent = state.audioBuffer.duration.toFixed(2);
             document.getElementById('sampleRate').textContent = (state.audioBuffer.sampleRate / 1000).toFixed(0) + 'k';
             document.getElementById('sampleInfo').style.display = 'block';
@@ -1114,7 +1667,12 @@
         });
 
         document.getElementById('bpmInput').addEventListener('change', (e) => {
-            state.bpm = parseInt(e.target.value);
+            const val = parseInt(e.target.value);
+            if (val >= 40 && val <= 300) state.bpm = val;
+        });
+        document.getElementById('bpmInput').addEventListener('input', (e) => {
+            const val = parseInt(e.target.value);
+            if (val >= 40 && val <= 300) state.bpm = val;
         });
 
         document.getElementById('swingSlider').addEventListener('input', (e) => {
@@ -1159,6 +1717,7 @@
         document.getElementById('reverbMix').addEventListener('input', (e) => {
             state.effects.reverb.mix = parseInt(e.target.value);
             document.getElementById('reverbMixVal').textContent = e.target.value;
+            updateReverbMix(); // Atualizar reverb convolver mix
         });
 
         document.getElementById('effectsBypass').addEventListener('change', (e) => {
@@ -1188,15 +1747,15 @@
             const downsample = Math.max(1, Math.floor(rawData.length / width));
             const samples = Math.floor(rawData.length / downsample);
 
-            canvasCtx.fillStyle = 'rgba(10, 10, 10, 1)';
+            canvasCtx.fillStyle = 'var(--bg-control)';
             canvasCtx.fillRect(0, 0, width, height);
 
             // Get current master volume
             const masterVolume = parseFloat(document.getElementById('masterVolume').value);
 
-            // Draw waveform com volume dinâmico
-            canvasCtx.strokeStyle = 'rgba(0, 255, 136, 0.6)';
-            canvasCtx.lineWidth = 1;
+            // Draw waveform com volume dinâmico - warm brown tone
+            canvasCtx.strokeStyle = 'rgba(99, 102, 241, 0.8)';
+            canvasCtx.lineWidth = 1.5;
             canvasCtx.beginPath();
 
             for (let i = 0; i < samples; i++) {
@@ -1255,6 +1814,7 @@
                 const x = (slice.start / state.audioBuffer.duration) * width;
                 const endX = (slice.end / state.audioBuffer.duration) * width;
                 const color = state.colors[idx % state.colors.length];
+                const isEditingSlice = state.selectedSliceForEditing === slice;
 
                 // Slice background
                 if (state.selectedSlice === idx) {
@@ -1262,9 +1822,9 @@
                     canvasCtx.fillRect(x, 0, endX - x, height);
                 }
 
-                // Slice markers
-                canvasCtx.strokeStyle = state.selectedSlice === idx ? color : color + '80';
-                canvasCtx.lineWidth = 2;
+                // Slice markers - mais destacados se é a slice que está sendo editada
+                canvasCtx.strokeStyle = isEditingSlice ? color : (state.selectedSlice === idx ? color : color + '80');
+                canvasCtx.lineWidth = isEditingSlice ? 3 : 2;
                 canvasCtx.beginPath();
                 canvasCtx.moveTo(x, 0);
                 canvasCtx.lineTo(x, height);
@@ -1304,8 +1864,7 @@
             const rect = canvas.getBoundingClientRect();
             const xPixels = e.clientX - rect.left;
             const yPixels = e.clientY - rect.top;
-            const x = xPixels / rect.width;
-            const y = yPixels / rect.height;
+            const cw = canvas.width;
 
             // Play button hit area (x: 8-36, y: 8-36)
             if (xPixels >= 8 && xPixels <= 36 && yPixels >= 8 && yPixels <= 36) {
@@ -1319,36 +1878,14 @@
                 return;
             }
 
-            const time = x * state.audioBuffer.duration;
-
-            // Check if clicking near slice edges
-            for (let i = 0; i < state.slices.length; i++) {
-                const slice = state.slices[i];
-                const startX = (slice.start / state.audioBuffer.duration) * rect.width;
-                const endX = (slice.end / state.audioBuffer.duration) * rect.width;
-
-                if (Math.abs((e.clientX - rect.left) - startX) < 8) {
-                    state.draggingSlice = i;
-                    state.dragMode = 'start';
-                    canvas.style.cursor = 'col-resize';
-                    return;
-                }
-                if (Math.abs((e.clientX - rect.left) - endX) < 8) {
-                    state.draggingSlice = i;
-                    state.dragMode = 'end';
-                    canvas.style.cursor = 'col-resize';
-                    return;
-                }
-            }
-
-            // Otherwise, create new slice or delete
-            if (e.ctrlKey || e.metaKey) {
-                state.slices = state.slices.filter(s => !(Math.abs(s.start - time) < 0.05));
-            } else {
+            // Double-click cria nova slice
+            if (e.detail === 2) {
+                const time = (xPixels / cw) * state.audioBuffer.duration;
+                
                 const nextSlice = state.slices.find(s => s.start > time);
                 const endTime = nextSlice ? nextSlice.start : state.audioBuffer.duration;
 
-                state.slices.push({
+                const newSlice = {
                     start: time,
                     end: Math.min(endTime, time + 0.5),
                     pitch: 1,
@@ -1358,33 +1895,82 @@
                     mode: 'shot',
                     fadeIn: 1,
                     fadeOut: 50
-                });
+                };
 
+                state.slices.push(newSlice);
                 state.slices.sort((a, b) => a.start - b.start);
+                state.selectedSliceForEditing = newSlice;
+                newSlice.expanded = true;
                 initSequencerGrid();
+                updateSlicesList();
+                drawWaveform();
+                return;
             }
 
-            updateSlicesList();
-            drawWaveform();
+            // Single-click: só faz drag se é uma slice selecionada para editar
+            if (!state.selectedSliceForEditing) return;
+            if (e.button !== 0) return; // Apenas left click
+            
+            const slice = state.selectedSliceForEditing;
+            const startX = (slice.start / state.audioBuffer.duration) * cw;
+            const endX = (slice.end / state.audioBuffer.duration) * cw;
+
+            if (Math.abs(xPixels - startX) < 10) {
+                state.draggingSlice = state.slices.indexOf(slice);
+                state.dragSliceRef = slice;
+                state.dragMode = 'start';
+                canvas.style.cursor = 'col-resize';
+                e.preventDefault();
+                return;
+            }
+            if (Math.abs(xPixels - endX) < 10) {
+                state.draggingSlice = state.slices.indexOf(slice);
+                state.dragSliceRef = slice;
+                state.dragMode = 'end';
+                canvas.style.cursor = 'col-resize';
+                e.preventDefault();
+                return;
+            }
+        });
+
+        // === MOUSE MOVE NO CANVAS - cursor feedback ===
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (!state.audioBuffer || !state.selectedSliceForEditing) {
+                canvas.style.cursor = 'crosshair';
+                return;
+            }
+
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left; // Coordenadas do canvas
+            const canvasWidth = canvas.width;
+
+            const slice = state.selectedSliceForEditing;
+            const startX = (slice.start / state.audioBuffer.duration) * canvasWidth;
+            const endX = (slice.end / state.audioBuffer.duration) * canvasWidth;
+
+            if (Math.abs(mouseX - startX) < 10 || Math.abs(mouseX - endX) < 10) {
+                canvas.style.cursor = 'col-resize';
+            } else {
+                canvas.style.cursor = 'crosshair';
+            }
         });
 
         document.addEventListener('mousemove', (e) => {
-            if (state.draggingSlice === null || !state.audioBuffer) return;
+            if (state.draggingSlice === null || !state.audioBuffer || !state.dragSliceRef) return;
 
-            const container = document.querySelector('.waveform-container');
             const rect = canvas.getBoundingClientRect();
+            const canvasWidth = canvas.width;
             
-            // Posição absoluta no canvas considerando scroll
-            const scrollX = container.scrollLeft;
-            const canvasX = e.clientX - rect.left + scrollX;
+            // Posição no canvas (rect.left já conta com scroll)
+            const mouseXCanvas = e.clientX - rect.left;
             
             // Converter pixel para tempo de áudio
-            const canvasWidth = canvas.width;
-            const normalizedX = canvasX / canvasWidth;
+            const normalizedX = mouseXCanvas / canvasWidth;
             const time = normalizedX * state.audioBuffer.duration;
             const clampedTime = Math.max(0, Math.min(state.audioBuffer.duration, time));
 
-            const slice = state.slices[state.draggingSlice];
+            const slice = state.dragSliceRef;
 
             if (state.dragMode === 'start') {
                 slice.start = Math.min(clampedTime, slice.end - 0.01);
@@ -1394,14 +1980,65 @@
 
             updateSlicesList();
             drawWaveform();
-            updatePlayingSliceAudio(state.draggingSlice);
+            if (state.draggingSlice >= 0 && state.draggingSlice < state.slices.length) {
+                updatePlayingSliceAudio(state.draggingSlice);
+            }
         });
 
         document.addEventListener('mouseup', () => {
             state.draggingSlice = null;
             state.dragMode = null;
+            state.dragSliceRef = null;
             canvas.style.cursor = 'crosshair';
         });
+
+        // === SCROLL TO SELECTED SLICE ===
+        function scrollToSlice(slice) {
+            if (!state.audioBuffer || !slice) return;
+            const container = document.querySelector('.waveform-container');
+            if (!container) return;
+            
+            const canvasWidth = canvas.width;
+            const startX = (slice.start / state.audioBuffer.duration) * canvasWidth;
+            const endX = (slice.end / state.audioBuffer.duration) * canvasWidth;
+            const sliceMidX = (startX + endX) / 2;
+            const containerWidth = container.clientWidth;
+            
+            // Scroll para centrar a slice no viewport
+            const targetScroll = sliceMidX - (containerWidth / 2);
+            container.scrollTo({
+                left: Math.max(0, targetScroll),
+                behavior: 'smooth'
+            });
+        }
+
+        // === SCROLL WHEEL PARA NAVEGAR SLICES ===
+        document.addEventListener('wheel', (e) => {
+            if (!state.audioBuffer || state.slices.length === 0) return;
+            
+            // Só navega se tem slice selecionada
+            if (!state.selectedSliceForEditing) return;
+
+            e.preventDefault();
+
+            const currentIdx = state.slices.indexOf(state.selectedSliceForEditing);
+            let nextIdx = currentIdx;
+
+            if (e.deltaY < 0) {
+                // Scroll up = slice anterior
+                nextIdx = Math.max(0, currentIdx - 1);
+            } else {
+                // Scroll down = próxima slice
+                nextIdx = Math.min(state.slices.length - 1, currentIdx + 1);
+            }
+
+            if (nextIdx !== currentIdx) {
+                state.selectedSliceForEditing = state.slices[nextIdx];
+                updateSlicesList();
+                drawWaveform();
+                scrollToSlice(state.slices[nextIdx]);
+            }
+        }, { passive: false });
 
         // === SLICE DETECTION ===
         function detectTransients() {
@@ -1456,6 +2093,33 @@
         document.getElementById('detectBtn').addEventListener('click', detectTransients);
         document.getElementById('sensitivity').addEventListener('input', (e) => {
             document.getElementById('sensitivityValue').textContent = Math.round(parseFloat(e.target.value) * 100) + '%';
+        });
+
+        // === MIDI MODE SWITCH ===
+        document.getElementById('midiModeTrigger').addEventListener('click', () => {
+            state.midiMode = 'trigger';
+            const triggerBtn = document.getElementById('midiModeTrigger');
+            const samplerBtn = document.getElementById('midiModeSampler');
+            triggerBtn.style.background = 'var(--accent)';
+            triggerBtn.style.color = '#fff';
+            triggerBtn.style.borderColor = 'var(--accent)';
+            samplerBtn.style.background = '';
+            samplerBtn.style.color = '';
+            samplerBtn.style.borderColor = '';
+            document.getElementById('midiModeHint').textContent = 'Each key triggers a different slice';
+        });
+
+        document.getElementById('midiModeSampler').addEventListener('click', () => {
+            state.midiMode = 'sampler';
+            const triggerBtn = document.getElementById('midiModeTrigger');
+            const samplerBtn = document.getElementById('midiModeSampler');
+            samplerBtn.style.background = 'var(--accent)';
+            samplerBtn.style.color = '#fff';
+            samplerBtn.style.borderColor = 'var(--accent)';
+            triggerBtn.style.background = '';
+            triggerBtn.style.color = '';
+            triggerBtn.style.borderColor = '';
+            document.getElementById('midiModeHint').textContent = 'Selected slice plays at different pitches (C4 = original)';
         });
 
         // === FULL WAVEFORM PLAYBACK ===
@@ -1541,7 +2205,8 @@
 
             source.connect(gainNode);
             gainNode.connect(panNode);
-            panNode.connect(ctx.destination);
+            panNode.connect(reverbDryGainNode);
+            panNode.connect(reverbWetGainNode);
             
             if (slice.mode === 'loop') {
                 source.loop = true;
@@ -1608,22 +2273,22 @@
             // Apply effects chain
             if (!state.effects.bypass) {
                 // 1. Compressor
-                if (state.effects.compressor.mix > 0) {
+                if (state.effects.compressor.enabled && state.effects.compressor.mix > 0) {
                     audioData = applyCompressor(audioData, state.effects.compressor.ratio, state.effects.compressor.mix);
                 }
 
                 // 2. Overdrive
-                if (state.effects.overdrive.mix > 0) {
+                if (state.effects.overdrive.enabled && state.effects.overdrive.mix > 0) {
                     audioData = applyOverdrive(audioData, state.effects.overdrive.drive, state.effects.overdrive.mix);
                 }
 
                 // 3. Decimator
-                if (state.effects.decimator.mix > 0) {
+                if (state.effects.decimator.enabled && state.effects.decimator.mix > 0) {
                     audioData = applyDecimator(audioData, state.effects.decimator.bits, state.effects.decimator.mix);
                 }
 
                 // 4. Reverb
-                if (state.effects.reverb.mix > 0) {
+                if (state.effects.reverb.enabled && state.effects.reverb.mix > 0) {
                     audioData = applyReverb(audioData, state.effects.reverb.mode, state.effects.reverb.mix);
                 }
             }
@@ -1664,22 +2329,22 @@
             let data = [...audioData];
 
             // 1. Compressor (primeiro na chain)
-            if (state.effects.compressor.mix > 0) {
+            if (state.effects.compressor.enabled && state.effects.compressor.mix > 0) {
                 data = applyCompressor(data, state.effects.compressor.ratio, state.effects.compressor.mix);
             }
 
             // 2. Overdrive
-            if (state.effects.overdrive.mix > 0) {
+            if (state.effects.overdrive.enabled && state.effects.overdrive.mix > 0) {
                 data = applyOverdrive(data, state.effects.overdrive.drive, state.effects.overdrive.mix);
             }
 
             // 3. Decimator
-            if (state.effects.decimator.mix > 0) {
+            if (state.effects.decimator.enabled && state.effects.decimator.mix > 0) {
                 data = applyDecimator(data, state.effects.decimator.bits, state.effects.decimator.mix);
             }
 
             // 4. Reverb
-            if (state.effects.reverb.mix > 0) {
+            if (state.effects.reverb.enabled && state.effects.reverb.mix > 0) {
                 data = applyReverb(data, state.effects.reverb.mode, state.effects.reverb.mix);
             }
 
@@ -1687,14 +2352,27 @@
         }
 
         function applyCompressor(data, ratio, mix) {
-            const threshold = 0.3;
+            if (ratio <= 1) return data; // Sem efeito se ratio é 1
+            
+            // Compressor simples tipo pedal: quanto maior o knob, mais compressão
+            // ratio aqui é o "knob" (1-8)
+            const compressionAmount = (ratio - 1) / 7; // Normaliza 1-8 para 0-1
+            
+            // Encontrar o nível RMS (root mean square) do sinal
+            let rms = 0;
+            for (let i = 0; i < data.length; i++) {
+                rms += data[i] * data[i];
+            }
+            rms = Math.sqrt(rms / data.length);
+            
+            // Target level: comprimir para um nível alvo
+            const targetLevel = 0.3;
+            const gain = rms > 0 ? targetLevel / rms : 1;
+            
+            // Aplicar compressão suavemente
             const processed = data.map(sample => {
-                if (Math.abs(sample) > threshold) {
-                    const sign = sample > 0 ? 1 : -1;
-                    const compressed = threshold + (Math.abs(sample) - threshold) / ratio;
-                    return sign * compressed;
-                }
-                return sample;
+                // Compressão baseada em envelope do sinal
+                return sample * (1 + compressionAmount * (gain - 1));
             });
 
             return data.map((orig, i) => orig * (1 - mix / 100) + processed[i] * (mix / 100));
@@ -1721,9 +2399,11 @@
         }
 
         function applyReverb(data, mode, mix) {
-            const delayTime = mode === 'plate' ? 0.04 : 0.06;
-            const decayRate = mode === 'plate' ? 0.4 : 0.35;
-            const numDelays = mode === 'plate' ? 4 : 3;
+            // SHORT: pequenas reflexões rápidas (room/small)
+            // LONG: cauda longa e suave (hall/cathedral)
+            const delayTime = mode === 'short' ? 0.025 : 0.08;
+            const decayRate = mode === 'short' ? 0.25 : 0.65;
+            const numDelays = mode === 'short' ? 3 : 12;
             
             const sampleRate = state.audioBuffer.sampleRate;
             const delaySamples = Math.floor(delayTime * sampleRate);
@@ -1779,15 +2459,19 @@
 
             state.slices.forEach((slice, idx) => {
                 const item = document.createElement('div');
-                item.className = 'slice-item';
+                item.className = `slice-item slice-item-${idx}`;
+                // Por defeito é collapsed, a menos que a slice tenha expanded = true
+                if (!slice.expanded) item.classList.add('collapsed');
                 if (state.selectedSlice === idx) item.classList.add('active');
+                if (state.selectedSliceForEditing === slice) item.classList.add('editing');
                 
                 const color = state.colors[idx % state.colors.length];
                 const note = state.noteOffset + idx;
                 const noteName = getNoteName(note);
 
                 item.innerHTML = `
-                    <div class="slice-header">
+                    <div class="slice-header" onclick="event.stopPropagation(); state.selectedSliceForEditing = state.slices[${idx}]; state.slices[${idx}].expanded = !state.slices[${idx}].expanded; updateSlicesList(); drawWaveform(); scrollToSlice(state.slices[${idx}]);">
+                        <span class="slice-toggle">▼</span>
                         <span class="slice-name" style="color: ${color};">Slice ${idx}</span>
                         <span class="slice-key">${state.keyBindings[idx] || '?'} (${noteName})</span>
                     </div>
@@ -1893,29 +2577,114 @@
 
         // === KEYBOARD CONTROLLER ===
         function initKeyboard() {
-            const keyboard = document.getElementById('keyboard');
-            keyboard.innerHTML = '';
+            const keyboardBlack = document.getElementById('keyboard-black');
+            const keyboardWhite = document.getElementById('keyboard-white');
+            if (!keyboardBlack || !keyboardWhite) return;
+            
+            keyboardBlack.innerHTML = '';
+            keyboardWhite.innerHTML = '';
 
-            state.keyBindings.forEach((key, idx) => {
+            // Teclas pretas com vazios: [vazio]WE[vazio]TYU[vazio]OP
+            const blackKeys = [
+                { key: '', idx: -1, isPlaceholder: true },   // Vazio
+                { key: 'W', idx: 1 },
+                { key: 'E', idx: 3 },
+                { key: '', idx: -1, isPlaceholder: true },   // Vazio
+                { key: 'T', idx: 6 },
+                { key: 'Y', idx: 8 },
+                { key: 'U', idx: 10 },
+                { key: '', idx: -1, isPlaceholder: true },   // Vazio
+                { key: 'O', idx: 13 },
+                { key: 'P', idx: 15 },
+            ];
+
+            // Teclas brancas: A S D F G H J K L (termina no L)
+            const whitKeys = [
+                { key: 'A', idx: 0 },
+                { key: 'S', idx: 2 },
+                { key: 'D', idx: 4 },
+                { key: 'F', idx: 5 },
+                { key: 'G', idx: 7 },
+                { key: 'H', idx: 9 },
+                { key: 'J', idx: 11 },
+                { key: 'K', idx: 12 },
+                { key: 'L', idx: 14 },
+            ];
+
+            // Adicionar teclas pretas com vazios
+            blackKeys.forEach(note => {
                 const btn = document.createElement('button');
                 btn.className = 'key';
-                btn.setAttribute('data-slice', idx);
                 
-                if (idx < state.slices.length && state.slices[idx].enabled) {
-                    const note = state.noteOffset + idx;
-                    const noteName = getNoteName(note);
-                    btn.innerHTML = `${key}<small>${noteName}</small>`;
+                if (note.isPlaceholder) {
+                    // Botão vazio
+                    btn.style.background = 'transparent';
+                    btn.style.border = 'none';
+                    btn.style.color = 'transparent';
+                    btn.style.minWidth = '35px';
+                    btn.style.padding = '4px 8px';
+                    btn.style.cursor = 'default';
+                    btn.innerHTML = '';
+                    btn.style.pointerEvents = 'none';
+                } else {
+                    btn.setAttribute('data-slice', note.idx);
+                    
+                    if (note.idx < state.slices.length && state.slices[note.idx].enabled) {
+                        const noteMidi = state.noteOffset + note.idx;
+                        const noteName = getNoteName(noteMidi);
+                        btn.innerHTML = `${note.key}<small>${noteName}</small>`;
+                    } else {
+                        btn.classList.add('disabled-key');
+                        btn.innerHTML = `${note.key}<small>-</small>`;
+                    }
+
+                    btn.addEventListener('click', () => {
+                        if (note.idx < state.slices.length && state.slices[note.idx].enabled) {
+                            playSlice(note.idx);
+                        }
+                    });
+
+                    btn.style.background = 'rgba(40, 40, 40, 0.9)';
+                    btn.style.color = '#ccc';
+                    btn.style.minWidth = '35px';
+                    btn.style.padding = '4px 8px';
+                }
+                
+                keyboardBlack.appendChild(btn);
+            });
+
+            // Adicionar spacer invisível no início da linha branca (meia largura)
+            const spacer = document.createElement('div');
+            spacer.style.minWidth = '17.5px';
+            spacer.style.padding = '4px 0';
+            keyboardWhite.appendChild(spacer);
+
+            // Adicionar teclas brancas
+            whitKeys.forEach(note => {
+                const btn = document.createElement('button');
+                btn.className = 'key';
+                btn.setAttribute('data-slice', note.idx);
+                
+                if (note.idx < state.slices.length && state.slices[note.idx].enabled) {
+                    const noteMidi = state.noteOffset + note.idx;
+                    const noteName = getNoteName(noteMidi);
+                    btn.innerHTML = `${note.key}<small>${noteName}</small>`;
                 } else {
                     btn.classList.add('disabled-key');
-                    btn.innerHTML = `${key}<small>-</small>`;
+                    btn.innerHTML = `${note.key}<small>-</small>`;
                 }
 
                 btn.addEventListener('click', () => {
-                    if (idx < state.slices.length && state.slices[idx].enabled) {
-                        playSlice(idx);
+                    if (note.idx < state.slices.length && state.slices[note.idx].enabled) {
+                        playSlice(note.idx);
                     }
                 });
-                keyboard.appendChild(btn);
+
+                btn.style.background = 'rgba(80, 80, 80, 0.8)';
+                btn.style.color = '#ddd';
+                btn.style.minWidth = '35px';
+                btn.style.padding = '4px 8px';
+                keyboardWhite.appendChild(btn);
             });
         }
 
@@ -1945,38 +2714,192 @@
 
         // === MIDI SUPPORT ===
         async function initMIDI() {
+            const midiStatusDot = document.getElementById('midiStatusDot');
+            const midiStatusText = document.getElementById('midiStatusText');
+            const midiDeviceInfo = document.getElementById('midiDeviceInfo');
+
             try {
                 const access = await navigator.requestMIDIAccess();
-                document.getElementById('midiStatus').classList.add('connected');
-                document.getElementById('midiStatus').textContent = 'MIDI: Connected';
-
-                access.inputs.forEach(input => {
-                    input.onmidimessage = (msg) => {
-                        const [cmd, note, velocity] = msg.data;
-                        const relativeNote = note - state.noteOffset;
-                        
-                        if (cmd === 0x90 && velocity > 0) {
-                            if (relativeNote >= 0 && relativeNote < state.slices.length) {
-                                if (!state.pressedKeys[relativeNote]) {
-                                    state.pressedKeys[relativeNote] = true;
-                                    playSlice(relativeNote, note);
-                                }
-                            }
-                        } else if (cmd === 0x80 || (cmd === 0x90 && velocity === 0)) {
-                            if (relativeNote >= 0 && relativeNote < state.slices.length) {
-                                state.pressedKeys[relativeNote] = false;
-                                
-                                const slice = state.slices[relativeNote];
-                                if (slice && (slice.mode === 'loop' || slice.mode === 'shot')) {
-                                    stopSlice(relativeNote);
-                                }
-                            }
+                
+                const updateMidiStatus = () => {
+                    const inputs = Array.from(access.inputs.values());
+                    
+                    if (inputs.length > 0) {
+                        // Conectado
+                        if (midiStatusDot) midiStatusDot.style.background = '#22c55e';
+                        if (midiStatusText) {
+                            midiStatusText.textContent = `MIDI: Connected`;
+                            midiStatusText.style.color = '#22c55e';
                         }
-                    };
-                });
+                        if (midiDeviceInfo) {
+                            const deviceNames = inputs.map(i => i.name).join(', ');
+                            midiDeviceInfo.textContent = deviceNames;
+                        }
+                    } else {
+                        // No devices
+                        if (midiStatusDot) midiStatusDot.style.background = 'var(--warning)';
+                        if (midiStatusText) {
+                            midiStatusText.textContent = 'MIDI: No devices';
+                            midiStatusText.style.color = 'var(--warning)';
+                        }
+                        if (midiDeviceInfo) midiDeviceInfo.textContent = 'Connect a MIDI device';
+                    }
+
+                    // Bind message handler to all inputs
+                    inputs.forEach(input => {
+                        input.onmidimessage = handleMidiMessage;
+                    });
+                };
+
+                // Setup state change listener
+                access.onstatechange = (event) => {
+                    console.log('MIDI state change:', event.port.name, event.port.state);
+                    updateMidiStatus();
+                };
+
+                updateMidiStatus();
+
             } catch (err) {
                 console.log('MIDI not available:', err);
+                if (midiStatusDot) midiStatusDot.style.background = 'var(--danger)';
+                if (midiStatusText) {
+                    midiStatusText.textContent = 'MIDI: Unavailable';
+                    midiStatusText.style.color = 'var(--danger)';
+                }
+                if (midiDeviceInfo) midiDeviceInfo.textContent = 'Web MIDI not supported';
             }
+        }
+
+        function handleMidiMessage(msg) {
+            const [cmd, note, velocity] = msg.data;
+            
+            // Visual feedback - flash status dot
+            const midiStatusDot = document.getElementById('midiStatusDot');
+            if (midiStatusDot) {
+                midiStatusDot.style.background = 'var(--accent)';
+                midiStatusDot.style.boxShadow = '0 0 8px var(--accent)';
+                setTimeout(() => {
+                    midiStatusDot.style.background = '#22c55e';
+                    midiStatusDot.style.boxShadow = 'none';
+                }, 100);
+            }
+            
+            if (state.midiMode === 'trigger') {
+                // TRIGGER MODE: cada nota MIDI trigger um slice diferente, sequencialmente
+                const relativeNote = note - state.noteOffset;
+                
+                if (cmd === 0x90 && velocity > 0) {
+                    if (relativeNote >= 0 && relativeNote < state.slices.length) {
+                        if (!state.pressedKeys[relativeNote]) {
+                            state.pressedKeys[relativeNote] = true;
+                            playSlice(relativeNote); // SEM pitch - toca pitch original do slice
+                        }
+                    }
+                    // Notas fora do range dos slices são ignoradas
+                } else if (cmd === 0x80 || (cmd === 0x90 && velocity === 0)) {
+                    if (relativeNote >= 0 && relativeNote < state.slices.length) {
+                        state.pressedKeys[relativeNote] = false;
+                        
+                        const slice = state.slices[relativeNote];
+                        if (slice && (slice.mode === 'loop' || slice.mode === 'shot')) {
+                            stopSlice(relativeNote);
+                        }
+                    }
+                }
+            } else if (state.midiMode === 'sampler') {
+                // SAMPLER MODE: usar a slice selecionada e aplicar pitch baseado em C4 (note 60)
+                const selectedSlice = state.selectedSliceForEditing;
+                if (!selectedSlice) return;
+                
+                const sliceIdx = state.slices.indexOf(selectedSlice);
+                if (sliceIdx === -1) return;
+                
+                if (cmd === 0x90 && velocity > 0) {
+                    // Usar 'note' como chave (não relativeNote) para que cada nota MIDI seja única
+                    const keyId = `sampler_${note}`;
+                    if (!state.pressedKeys[keyId]) {
+                        state.pressedKeys[keyId] = true;
+                        // playSlice com midiNote calcula o pitch automaticamente
+                        // Usando note como referência (60 = C4 = pitch original)
+                        playSliceSampler(sliceIdx, note);
+                    }
+                } else if (cmd === 0x80 || (cmd === 0x90 && velocity === 0)) {
+                    const keyId = `sampler_${note}`;
+                    state.pressedKeys[keyId] = false;
+                    stopSliceSampler(sliceIdx, note);
+                }
+            }
+        }
+
+        // Função especial para sampler mode - toca slice com pitch
+        function playSliceSampler(sliceIdx, midiNote) {
+            if (!state.audioBuffer) return;
+            
+            const slice = state.slices[sliceIdx];
+            if (!slice || !slice.enabled) return;
+
+            const ctx = initAudioContext();
+            const source = ctx.createBufferSource();
+            const gainNode = ctx.createGain();
+            const panNode = ctx.createStereoPanner();
+
+            // Calcular pitch baseado em C4 (60)
+            const C4 = 60;
+            const midiOffset = midiNote - C4;
+            const pitch = slice.pitch * Math.pow(2, midiOffset / 12);
+
+            const sliceBuffer = applyEffectsToSlice(sliceIdx);
+            
+            source.buffer = sliceBuffer;
+            source.playbackRate.value = pitch;
+            
+            const duration = sliceBuffer.duration / pitch;
+            const fadeInTime = (slice.fadeIn || 1) / 1000;
+            const fadeOutTime = (slice.fadeOut || 50) / 1000;
+            
+            gainNode.gain.setValueAtTime(0, ctx.currentTime);
+            gainNode.gain.linearRampToValueAtTime(
+                slice.volume * parseFloat(document.getElementById('masterVolume').value), 
+                ctx.currentTime + fadeInTime
+            );
+            
+            panNode.pan.value = slice.pan;
+
+            source.connect(gainNode);
+            gainNode.connect(panNode);
+            panNode.connect(reverbDryGainNode);
+            panNode.connect(reverbWetGainNode);
+            
+            source.start(ctx.currentTime, 0);
+            
+            // Armazenar com key única por nota MIDI
+            const key = `sampler_${midiNote}`;
+            state.playingSources[key] = {
+                source,
+                gainNode,
+                mode: 'sampler',
+                ctx: ctx,
+                fadeOutTime: fadeOutTime,
+                midiNote: midiNote
+            };
+        }
+
+        function stopSliceSampler(sliceIdx, midiNote) {
+            const key = `sampler_${midiNote}`;
+            const sourceObj = state.playingSources[key];
+            if (!sourceObj) return;
+            
+            const ctx = sourceObj.ctx;
+            const fadeOutTime = sourceObj.fadeOutTime || 0.05;
+            
+            try {
+                sourceObj.gainNode.gain.cancelScheduledValues(ctx.currentTime);
+                sourceObj.gainNode.gain.setValueAtTime(sourceObj.gainNode.gain.value, ctx.currentTime);
+                sourceObj.gainNode.gain.linearRampToValueAtTime(0, ctx.currentTime + fadeOutTime);
+                sourceObj.source.stop(ctx.currentTime + fadeOutTime);
+            } catch (e) {}
+            
+            delete state.playingSources[key];
         }
 
         // === STEP SEQUENCER ===
@@ -2005,6 +2928,34 @@
                 label.className = 'sequencer-label';
                 label.textContent = `Slice ${sliceIdx}`;
                 row.appendChild(label);
+
+                // M and S controls
+                const controls = document.createElement('div');
+                controls.className = 'sequencer-controls';
+                
+                const muteBtn = document.createElement('button');
+                muteBtn.className = 'seq-mute';
+                muteBtn.textContent = 'M';
+                muteBtn.title = 'Mute';
+                if (state.sequencerMute[sliceIdx]) muteBtn.classList.add('active');
+                muteBtn.addEventListener('click', () => {
+                    state.sequencerMute[sliceIdx] = !state.sequencerMute[sliceIdx];
+                    muteBtn.classList.toggle('active');
+                });
+                controls.appendChild(muteBtn);
+
+                const soloBtn = document.createElement('button');
+                soloBtn.className = 'seq-solo';
+                soloBtn.textContent = 'S';
+                soloBtn.title = 'Solo';
+                if (state.sequencerSolo[sliceIdx]) soloBtn.classList.add('active');
+                soloBtn.addEventListener('click', () => {
+                    state.sequencerSolo[sliceIdx] = !state.sequencerSolo[sliceIdx];
+                    soloBtn.classList.toggle('active');
+                });
+                controls.appendChild(soloBtn);
+                
+                row.appendChild(controls);
 
                 for (let step = 0; step < 16; step++) {
                     const stepBtn = document.createElement('button');
@@ -2063,9 +3014,10 @@
             state.sequencerPosition = 0;
             document.getElementById('seqPlayBtn').classList.add('active');
 
-            const stepDuration = (60 / state.bpm) * 1000 / 4; // 16th notes
-
             const playStep = () => {
+                // Calcular stepDuration a cada step para refletir mudanças de BPM em tempo real
+                const stepDuration = (60 / state.bpm) * 1000 / 4; // 16th notes
+
                 // Highlight current step
                 document.querySelectorAll('.sequencer-step').forEach(step => {
                     step.classList.remove('playing');
@@ -2079,12 +3031,16 @@
 
                     if (!state.sequencerPattern[sliceIdx]) return;
                     
+                    // Verificar mute/solo
+                    const anySolo = Object.values(state.sequencerSolo).some(v => v);
+                    if (anySolo && !state.sequencerSolo[sliceIdx]) return;
+                    if (state.sequencerMute[sliceIdx]) return;
+                    
                     const stepState = state.sequencerPattern[sliceIdx][state.sequencerPosition];
                     
                     if (stepState === 'trigger') {
                         playSlice(sliceIdx);
                     } else if (stepState === 'flame') {
-                        // Flame: repeat 4x em fusas
                         playSlice(sliceIdx);
                         for (let i = 1; i <= 3; i++) {
                             setTimeout(() => {
@@ -2096,7 +3052,7 @@
 
                 state.sequencerPosition = (state.sequencerPosition + 1) % 16;
 
-                // Swing timing: steps pares têm delay adicional
+                // Swing timing
                 const isEvenStep = state.sequencerPosition % 2 === 0;
                 const swingDelay = isEvenStep ? (stepDuration * state.swingAmount / 100) * 0.5 : 0;
                 const nextStepDelay = stepDuration + swingDelay;
@@ -2146,6 +3102,11 @@
                 const stepStartTime = step * stepDurationSeconds;
 
                 state.slices.forEach((slice, sliceIdx) => {
+                    // Verificar mute/solo
+                    const anySolo = Object.values(state.sequencerSolo).some(v => v);
+                    if (anySolo && !state.sequencerSolo[sliceIdx]) return;
+                    if (state.sequencerMute[sliceIdx]) return;
+                    
                     const stepState = state.sequencerPattern[sliceIdx][step];
 
                     if (stepState === 'trigger') {
@@ -2222,7 +3183,6 @@
                 source.stop(startTime + duration);
             }
         }
-        document.getElementById('seqExportBtn').addEventListener('click', exportSequencerLoop);
 
         // === WAV EXPORT ===
         function encodeWAV(audioBuffer, startTime, endTime) {
@@ -2477,9 +3437,21 @@
 
         // === AUDIO RECORDING ===
         async function startRecording() {
+            // Verificar se getUserMedia está disponível
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                alert('Microphone recording requires HTTPS or localhost. Please open the file from a local server.');
+                return;
+            }
+            
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                const mediaRecorder = new MediaRecorder(stream);
+                
+                // Verificar mimeType suportado
+                const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' :
+                                 MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' :
+                                 MediaRecorder.isTypeSupported('audio/ogg;codecs=opus') ? 'audio/ogg;codecs=opus' : '';
+                
+                const mediaRecorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
                 const ctx = initAudioContext();
                 const source = ctx.createMediaStreamSource(stream);
                 const analyser = ctx.createAnalyser();
@@ -2491,50 +3463,63 @@
                 state.recordingStream = stream;
                 
                 mediaRecorder.ondataavailable = (e) => {
-                    state.audioChunks.push(e.data);
+                    if (e.data.size > 0) {
+                        state.audioChunks.push(e.data);
+                    }
                 };
                 
                 mediaRecorder.onstop = async () => {
                     state.recordingAnalyser = null;
-                    const audioBlob = new Blob(state.audioChunks, { type: 'audio/wav' });
-                    const arrayBuffer = await audioBlob.arrayBuffer();
-                    const decodeCtx = initAudioContext();
+                    
+                    if (state.audioChunks.length === 0) {
+                        console.error('No audio data recorded');
+                        alert('No audio data was captured. Check microphone permissions.');
+                        return;
+                    }
+                    
+                    const audioBlob = new Blob(state.audioChunks, { type: mediaRecorder.mimeType });
                     
                     try {
+                        const arrayBuffer = await audioBlob.arrayBuffer();
+                        const decodeCtx = initAudioContext();
                         state.audioBuffer = await decodeCtx.decodeAudioData(arrayBuffer);
                         updateSampleInfo('recording_' + Date.now() + '.wav');
                         drawWaveform();
                         state.slices = [];
                         updateSlicesList();
                         initSequencerGrid();
-                        
-                        document.getElementById('recBtn').textContent = '● REC';
-                        document.getElementById('recBtn').style.background = 'var(--bg-control)';
+                        initKeyboard();
                     } catch (err) {
                         console.error('Audio decode error:', err);
-                        alert('Error processing recording');
+                        alert('Error processing recording: ' + err.message);
                     }
+                    
+                    const recBtn = document.getElementById('recBtn');
+                    recBtn.innerHTML = '<strong style="font-size: 16px;">●</strong><small>REC</small>';
+                    recBtn.style.background = '';
                 };
                 
-                mediaRecorder.start();
+                mediaRecorder.start(100); // Chunks a cada 100ms
                 state.mediaRecorder = mediaRecorder;
                 state.isRecording = true;
-                document.getElementById('recBtn').textContent = '⏹ STOP';
-                document.getElementById('recBtn').classList.add('recording');
                 
-                // Visualização em tempo real (agora só pulse no botão)
+                const recBtn = document.getElementById('recBtn');
+                recBtn.innerHTML = '<strong style="font-size: 16px;">⏹</strong><small>STOP</small>';
+                recBtn.classList.add('recording');
+                
+                // Visualização em tempo real
                 visualizeRecording();
                 
-                // Stop recording after 60 seconds max
+                // Stop recording after 120 seconds max
                 setTimeout(() => {
                     if (state.isRecording) {
                         stopRecording();
                     }
-                }, 60000);
+                }, 120000);
                 
             } catch (err) {
                 console.error('Microphone access error:', err);
-                alert('Microphone access denied. Please allow microphone access to record.');
+                alert('Microphone access denied: ' + err.message + '\nMake sure you\'re using HTTPS or localhost.');
             }
         }
         
@@ -2551,8 +3536,9 @@
                 state.mediaRecorder.stream.getTracks().forEach(track => track.stop());
                 state.isRecording = false;
                 
-                document.getElementById('recBtn').textContent = '● REC';
-                document.getElementById('recBtn').classList.remove('recording');
+                const recBtn = document.getElementById('recBtn');
+                recBtn.innerHTML = '<strong style="font-size: 16px;">●</strong><small>REC</small>';
+                recBtn.classList.remove('recording');
             }
         }
         
@@ -2561,6 +3547,35 @@
                 stopRecording();
             } else {
                 startRecording();
+            }
+        });
+
+        // === EFFECT SLIDERS ===
+        const effectSliders = [
+            { id: 'compRatio', display: 'compRatioVal', format: 'decimal' },
+            { id: 'compMix', display: 'compMixVal', format: 'percent' },
+            { id: 'overDrive', display: 'overDriveVal', format: 'percent' },
+            { id: 'overMix', display: 'overMixVal', format: 'percent' },
+            { id: 'decimBits', display: 'decimBitsVal', format: 'integer' },
+            { id: 'decimMix', display: 'decimMixVal', format: 'percent' },
+            { id: 'reverbMix', display: 'reverbMixVal', format: 'percent' },
+        ];
+
+        effectSliders.forEach(slider => {
+            const input = document.getElementById(slider.id);
+            const display = document.getElementById(slider.display);
+            
+            if (input && display) {
+                input.addEventListener('input', (e) => {
+                    const value = parseFloat(e.target.value);
+                    if (slider.format === 'percent') {
+                        display.textContent = Math.round(value);
+                    } else if (slider.format === 'decimal') {
+                        display.textContent = value.toFixed(1);
+                    } else {
+                        display.textContent = Math.round(value);
+                    }
+                });
             }
         });
 
@@ -2601,6 +3616,136 @@
             console.log('PWA installed successfully');
             deferredPrompt = null;
         });
+
+        // Error handler para evitar crashes silenciosos
+        window.addEventListener('error', (e) => {
+            console.error('Global error:', e.error);
+        });
+
+        // Unhandled promise rejection handler
+        window.addEventListener('unhandledrejection', (e) => {
+            console.error('Unhandled promise rejection:', e.reason);
+        });
+
+        // === ROTATIVE KNOBS ===
+        function initKnobs() {
+            const knobs = document.querySelectorAll('.knob');
+            
+            knobs.forEach(knob => {
+                const targetId = knob.dataset.target;
+                const min = parseFloat(knob.dataset.min);
+                const max = parseFloat(knob.dataset.max);
+                let value = parseFloat(knob.dataset.value);
+                const range = max - min;
+                
+                // Set initial rotation
+                const updateRotation = (val) => {
+                    const normalized = (val - min) / range; // 0 to 1
+                    const rotation = -135 + (normalized * 270); // -135deg to +135deg
+                    knob.style.transform = `rotate(${rotation}deg)`;
+                };
+                
+                updateRotation(value);
+                
+                let isDragging = false;
+                let startY = 0;
+                let startValue = value;
+                
+                const onMouseDown = (e) => {
+                    isDragging = true;
+                    startY = e.clientY;
+                    startValue = value;
+                    document.body.style.cursor = 'ns-resize';
+                    e.preventDefault();
+                };
+                
+                const onMouseMove = (e) => {
+                    if (!isDragging) return;
+                    
+                    const deltaY = startY - e.clientY; // Inverted (up = increase)
+                    const sensitivity = range / 150; // 150px = full range
+                    let newValue = startValue + (deltaY * sensitivity);
+                    
+                    // Clamp
+                    newValue = Math.max(min, Math.min(max, newValue));
+                    
+                    // Step for integer ranges
+                    if (max - min > 1 && (max % 1 === 0 && min % 1 === 0)) {
+                        newValue = Math.round(newValue);
+                    } else {
+                        newValue = Math.round(newValue * 10) / 10;
+                    }
+                    
+                    value = newValue;
+                    knob.dataset.value = value;
+                    updateRotation(value);
+                    
+                    // Update underlying input
+                    const input = document.getElementById(targetId);
+                    if (input) {
+                        input.value = value;
+                        // Trigger input event so existing handlers work
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                };
+                
+                const onMouseUp = () => {
+                    isDragging = false;
+                    document.body.style.cursor = '';
+                };
+                
+                knob.addEventListener('mousedown', onMouseDown);
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+                
+                // Double-click to reset
+                knob.addEventListener('dblclick', () => {
+                    value = min;
+                    knob.dataset.value = value;
+                    updateRotation(value);
+                    const input = document.getElementById(targetId);
+                    if (input) {
+                        input.value = value;
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                });
+                
+                // Wheel to adjust
+                knob.addEventListener('wheel', (e) => {
+                    e.preventDefault();
+                    const delta = e.deltaY < 0 ? 1 : -1;
+                    const step = range / 100;
+                    let newValue = value + (delta * step);
+                    newValue = Math.max(min, Math.min(max, newValue));
+                    
+                    if (max - min > 1 && (max % 1 === 0 && min % 1 === 0)) {
+                        newValue = Math.round(newValue);
+                    } else {
+                        newValue = Math.round(newValue * 10) / 10;
+                    }
+                    
+                    value = newValue;
+                    knob.dataset.value = value;
+                    updateRotation(value);
+                    
+                    const input = document.getElementById(targetId);
+                    if (input) {
+                        input.value = value;
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                });
+            });
+        }
+
+        // Inicializar knobs quando DOM estiver pronto
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initKnobs);
+        } else {
+            initKnobs();
+        }
     </script>
 </body>
 </html>
