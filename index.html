@@ -1319,16 +1319,7 @@
                     <select id="micSelect" style="width: 100%; background: var(--bg-control); border: 1px solid var(--border); color: var(--text-secondary); font-size: 11px; padding: 5px 6px; border-radius: 6px; font-family: inherit; margin-bottom: 6px; cursor: pointer;">
                         <option value="">🎙 Default Microphone</option>
                     </select>
-                    <!-- VU Meter -->
-                    <div id="vuMeterWrap" style="display: none; flex-direction: column; gap: 3px; margin-bottom: 6px;">
-                        <div style="font-size: 10px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; display: flex; justify-content: space-between;">
-                            <span>Input Level</span>
-                            <span id="vuPeakLabel" style="color: var(--text-secondary);">–∞</span>
-                        </div>
-                        <div style="background: var(--bg-control); border: 1px solid var(--border); border-radius: 4px; height: 10px; overflow: hidden; position: relative;">
-                            <div id="vuBar" style="height: 100%; width: 0%; border-radius: 3px; transition: width 0.05s linear; background: linear-gradient(90deg, #10b981 0%, #f59e0b 70%, #ef4444 100%);"></div>
-                        </div>
-                    </div>
+
                     <div id="sampleInfo" class="sample-info" style="display: none;">
                         <div><span class="label">File:</span> <span id="fileName">-</span></div>
                         <div><span class="label">Duration:</span> <span id="duration">-</span>s</div>
@@ -1514,8 +1505,19 @@
         <!-- SEQUENCER TAB -->
         <div id="sequencer-tab" class="tabs-content" style="grid-template-columns: 1fr;">
             <div class="sequencer-container" style="overflow: hidden; display: grid; grid-template-rows: auto 1fr;">
-                <div class="sequencer-header">
-                    <div style="display: flex; gap: 20px; align-items: flex-end;">
+                <div class="sequencer-header" style="flex-direction: column; gap: 8px; padding: 10px 16px;">
+                    <!-- Row 1: Scenes -->
+                    <div style="display: flex; align-items: center; gap: 6px; width: 100%;">
+                        <span style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); min-width: 46px;">Scene</span>
+                        <div id="sceneBtns" style="display: flex; gap: 4px;">
+                        </div>
+                        <div style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+                            <span style="font-size: 10px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px;">Next</span>
+                            <div id="pendingSceneIndicator" style="font-size: 11px; font-weight: 700; color: var(--warning); min-width: 16px; text-align: center;">—</div>
+                        </div>
+                    </div>
+                    <!-- Row 2: Controls -->
+                    <div style="display: flex; gap: 16px; align-items: flex-end; width: 100%;">
                         <div class="bpm-control">
                             <label>BPM</label>
                             <input type="number" id="bpmInput" min="40" max="300" value="120" style="width: 100%; padding: 4px; background: var(--bg-control); border: 1px solid var(--border); color: var(--accent); border-radius: 2px; font-family: inherit; font-size: 14px;">
@@ -1524,11 +1526,23 @@
                             <label>SWING</label>
                             <input type="range" id="swingSlider" min="0" max="100" value="0">
                         </div>
-                    </div>
-                    <div class="sequencer-play">
-                        <button id="seqPlayBtn" title="Play">▶</button>
-                        <button id="seqStopBtn" title="Stop">■</button>
-                        <button id="seqExportBtn" class="btn">Export</button>
+                        <div style="display: flex; flex-direction: column; gap: 4px; min-width: 100px;">
+                            <label style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary);">Steps</label>
+                            <select id="stepCountSelect" style="background: var(--bg-control); border: 1px solid var(--border); color: var(--text-primary); font-size: 13px; padding: 4px 6px; border-radius: 4px; font-family: inherit; cursor: pointer;">
+                                <option value="8">8 — 2/4</option>
+                                <option value="12">12 — 3/4 / 6/8</option>
+                                <option value="16" selected>16 — 4/4</option>
+                                <option value="20">20 — 5/4</option>
+                                <option value="24">24 — 6/4</option>
+                                <option value="28">28 — 7/4</option>
+                                <option value="32">32 — 4/4 double</option>
+                            </select>
+                        </div>
+                        <div class="sequencer-play" style="margin-left: auto;">
+                            <button id="seqPlayBtn" title="Play">▶</button>
+                            <button id="seqStopBtn" title="Stop">■</button>
+                            <button id="seqExportBtn" class="btn">Export</button>
+                        </div>
                     </div>
                 </div>
                 <div class="sequencer-grid" id="sequencerGrid" style="flex: 1; overflow: auto;"></div>
@@ -1618,13 +1632,25 @@
             // Sequencer
             bpm: 120,
             isSequencerPlaying: false,
-            sequencerPattern: {}, // { sliceIdx: { 0: 'empty'|'trigger'|'flame', 1: ..., ... } }
-            sequencerMute: {}, // { sliceIdx: true/false }
-            sequencerSolo: {}, // { sliceIdx: true/false }
+            // Scenes: 8 scenes, each with its own pattern, stepCount, bpm
+            scenes: Array.from({length: 8}, () => ({
+                pattern: {},   // { sliceIdx: { step: 'empty'|'trigger'|'flame' } }
+                mute: {},
+                solo: {},
+                stepCount: 16,
+                bpm: 120
+            })),
+            currentScene: 0,      // active scene index
+            pendingScene: null,   // scene queued to load at end of cycle
+            // Aliases — always point to current scene's data
+            sequencerPattern: {}, // ref to scenes[currentScene].pattern
+            sequencerMute: {},
+            sequencerSolo: {},
             midiMode: 'trigger', // 'trigger' ou 'sampler'
             sequencerPosition: 0,
             sequencerIntervalId: null,
             swingAmount: 0, // 0-100%
+            stepCount: 16, // current scene step count
             // Effects
             effects: {
                 compressor: { ratio: 1, mix: 0, enabled: true },
@@ -1735,15 +1761,25 @@
 
         document.getElementById('bpmInput').addEventListener('change', (e) => {
             const val = parseInt(e.target.value);
-            if (val >= 40 && val <= 300) state.bpm = val;
+            if (val >= 40 && val <= 300) { state.bpm = val; state.scenes[state.currentScene].bpm = val; }
         });
         document.getElementById('bpmInput').addEventListener('input', (e) => {
             const val = parseInt(e.target.value);
-            if (val >= 40 && val <= 300) state.bpm = val;
+            if (val >= 40 && val <= 300) { state.bpm = val; state.scenes[state.currentScene].bpm = val; }
         });
 
         document.getElementById('swingSlider').addEventListener('input', (e) => {
             state.swingAmount = parseInt(e.target.value);
+        });
+
+        document.getElementById('stepCountSelect').addEventListener('change', (e) => {
+            state.stepCount = parseInt(e.target.value);
+            state.scenes[state.currentScene].stepCount = state.stepCount;
+            // Reset position if it's out of bounds
+            if (state.sequencerPosition >= state.stepCount) {
+                state.sequencerPosition = 0;
+            }
+            initSequencerGrid();
         });
 
         // === EFFECTS ===
@@ -1992,13 +2028,13 @@
                     enabled: true,
                     mode: 'shot',
                     fadeIn: 1,
-                    fadeOut: 50
+                    fadeOut: 50,
+                    expanded: false
                 };
 
                 state.slices.push(newSlice);
                 state.slices.sort((a, b) => a.start - b.start);
                 state.selectedSliceForEditing = newSlice;
-                newSlice.expanded = true;
                 
                 console.log('✅ Slice created:', newSlice);
                 console.log('Total slices:', state.slices.length);
@@ -2181,7 +2217,8 @@
                             enabled: true,
                             mode: 'shot',
                             fadeIn: 1,
-                            fadeOut: 50
+                            fadeOut: 50,
+                            expanded: false
                         });
                     }
                     inSlice = false;
@@ -2571,7 +2608,7 @@
             state.slices.forEach((slice, idx) => {
                 const item = document.createElement('div');
                 item.className = `slice-item slice-item-${idx}`;
-                // Por defeito as slices estão expandidas
+                // Por defeito as slices estão colapsadas (expanded: false)
                 if (slice.expanded === false) item.classList.add('collapsed');
                 if (state.selectedSlice === idx) item.classList.add('active');
                 if (state.selectedSliceForEditing === slice) item.classList.add('editing');
@@ -2637,11 +2674,7 @@
                             <span class="param-value">${(slice.fadeOut || 50)}ms</span>
                         </div>
                     </div>
-                    <div class="slice-checkbox">
-                        <input type="checkbox" id="enabled-${idx}" ${slice.enabled ? 'checked' : ''} 
-                            onchange="updateSliceParam(${idx}, 'enabled', this.checked); updateSlicesList();">
-                        <label for="enabled-${idx}">Use in keyboard</label>
-                    </div>
+
                     <div class="slice-mode">
                         <button class="mode-btn ${slice.mode === 'shot' ? 'active' : ''}" onclick="updateSliceParam(${idx}, 'mode', 'shot'); updateSlicesList();">Shot</button>
                         <button class="mode-btn ${slice.mode === 'loop' ? 'active' : ''}" onclick="updateSliceParam(${idx}, 'mode', 'loop'); updateSlicesList();">Loop</button>
@@ -2807,6 +2840,14 @@
 
         // === KEYBOARD EVENTS ===
         document.addEventListener('keydown', (e) => {
+            // Keys 1-8: switch scenes (only when sequencer tab is active or always)
+            if (e.key >= '1' && e.key <= '8' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                const sceneIdx = parseInt(e.key) - 1;
+                saveCurrentScene();
+                queueScene(sceneIdx);
+                return;
+            }
+
             const keyIdx = state.keyBindings.indexOf(e.key.toUpperCase());
             if (keyIdx !== -1 && keyIdx < state.slices.length) {
                 const slice = state.slices[keyIdx];
@@ -3028,12 +3069,16 @@
 
             const grid = document.getElementById('sequencerGrid');
             grid.innerHTML = '';
+            const steps = state.stepCount;
 
             state.slices.forEach((slice, sliceIdx) => {
                 // Initialize pattern for this slice if not exists
                 if (!state.sequencerPattern[sliceIdx]) {
                     state.sequencerPattern[sliceIdx] = {};
-                    for (let i = 0; i < 16; i++) {
+                }
+                // Ensure all steps exist for current stepCount
+                for (let i = 0; i < steps; i++) {
+                    if (!state.sequencerPattern[sliceIdx][i]) {
                         state.sequencerPattern[sliceIdx][i] = 'empty';
                     }
                 }
@@ -3074,7 +3119,7 @@
                 
                 row.appendChild(controls);
 
-                for (let step = 0; step < 16; step++) {
+                for (let step = 0; step < steps; step++) {
                     const stepBtn = document.createElement('button');
                     stepBtn.className = 'sequencer-step';
                     const state_val = state.sequencerPattern[sliceIdx][step];
@@ -3124,68 +3169,163 @@
             });
         }
 
+        // === SCENE MANAGEMENT ===
+        function loadScene(sceneIdx) {
+            const scene = state.scenes[sceneIdx];
+            state.sequencerPattern = scene.pattern;
+            state.sequencerMute    = scene.mute;
+            state.sequencerSolo    = scene.solo;
+            state.stepCount        = scene.stepCount;
+            state.bpm              = scene.bpm;
+            state.currentScene     = sceneIdx;
+            state.pendingScene     = null;
+
+            // Sync UI
+            document.getElementById('bpmInput').value       = scene.bpm;
+            document.getElementById('stepCountSelect').value = scene.stepCount;
+            updateSceneButtons();
+            document.getElementById('pendingSceneIndicator').textContent = '—';
+            initSequencerGrid();
+        }
+
+        function saveCurrentScene() {
+            const scene = state.scenes[state.currentScene];
+            scene.pattern   = state.sequencerPattern;
+            scene.mute      = state.sequencerMute;
+            scene.solo      = state.sequencerSolo;
+            scene.stepCount = state.stepCount;
+            scene.bpm       = state.bpm;
+        }
+
+        function updateSceneButtons() {
+            const container = document.getElementById('sceneBtns');
+            if (!container) return;
+            Array.from(container.children).forEach((btn, i) => {
+                btn.style.background    = i === state.currentScene  ? 'var(--accent)'  : 
+                                          i === state.pendingScene  ? 'var(--warning)' : 'var(--bg-control)';
+                btn.style.borderColor   = i === state.currentScene  ? 'var(--accent)'  :
+                                          i === state.pendingScene  ? 'var(--warning)' : 'var(--border)';
+                btn.style.color         = (i === state.currentScene || i === state.pendingScene) ? '#fff' : 'var(--text-secondary)';
+            });
+        }
+
+        function queueScene(sceneIdx) {
+            if (sceneIdx === state.currentScene) return;
+            if (!state.isSequencerPlaying) {
+                saveCurrentScene();
+                loadScene(sceneIdx);
+                return;
+            }
+            state.pendingScene = sceneIdx;
+            document.getElementById('pendingSceneIndicator').textContent = sceneIdx + 1;
+            updateSceneButtons();
+        }
+
+        function initSceneButtons() {
+            const container = document.getElementById('sceneBtns');
+            if (!container) return;
+            container.innerHTML = '';
+            for (let i = 0; i < 8; i++) {
+                const btn = document.createElement('button');
+                btn.className = 'btn';
+                btn.textContent = i + 1;
+                btn.style.cssText = 'width:32px; height:32px; padding:0; font-size:13px; font-weight:700;';
+                btn.addEventListener('click', () => { saveCurrentScene(); queueScene(i); });
+                container.appendChild(btn);
+            }
+            updateSceneButtons();
+        }
+
         function startSequencer() {
             if (state.isSequencerPlaying) return;
+
+            const ctx = initAudioContext();
+            if (ctx.state === 'suspended') ctx.resume();
 
             state.isSequencerPlaying = true;
             state.sequencerPosition = 0;
             document.getElementById('seqPlayBtn').classList.add('active');
 
-            const playStep = () => {
-                // Calcular stepDuration a cada step para refletir mudanças de BPM em tempo real
-                const stepDuration = (60 / state.bpm) * 1000 / 4; // 16th notes
+            const LOOKAHEAD_MS = 25;
+            const SCHEDULE_INTERVAL = 12;
+            let nextStepTime = ctx.currentTime;
 
-                // Highlight current step
-                document.querySelectorAll('.sequencer-step').forEach(step => {
-                    step.classList.remove('playing');
-                });
-
+            const scheduleStep = (stepPosition, atTime) => {
+                const stepDurationSec = (60 / state.bpm) / 4;
                 document.querySelectorAll('.sequencer-row').forEach((row, sliceIdx) => {
-                    const stepBtn = row.querySelector(`button:nth-child(${state.sequencerPosition + 2})`);
-                    if (stepBtn) {
-                        stepBtn.classList.add('playing');
-                    }
-
                     if (!state.sequencerPattern[sliceIdx]) return;
-                    
-                    // Verificar mute/solo
                     const anySolo = Object.values(state.sequencerSolo).some(v => v);
                     if (anySolo && !state.sequencerSolo[sliceIdx]) return;
                     if (state.sequencerMute[sliceIdx]) return;
-                    
-                    const stepState = state.sequencerPattern[sliceIdx][state.sequencerPosition];
-                    
+                    const stepState = state.sequencerPattern[sliceIdx][stepPosition];
                     if (stepState === 'trigger') {
-                        playSlice(sliceIdx);
+                        const delay = Math.max(0, (atTime - ctx.currentTime) * 1000);
+                        setTimeout(() => { if (state.isSequencerPlaying) playSlice(sliceIdx); }, delay);
                     } else if (stepState === 'flame') {
-                        playSlice(sliceIdx);
-                        for (let i = 1; i <= 3; i++) {
-                            setTimeout(() => {
-                                playSlice(sliceIdx);
-                            }, i * (stepDuration / 4));
+                        const tripletInterval = stepDurationSec / 3;
+                        for (let i = 0; i < 3; i++) {
+                            const fireAt = atTime + i * tripletInterval;
+                            const delay = Math.max(0, (fireAt - ctx.currentTime) * 1000);
+                            setTimeout(() => { if (state.isSequencerPlaying) playSlice(sliceIdx); }, delay);
                         }
                     }
                 });
-
-                state.sequencerPosition = (state.sequencerPosition + 1) % 16;
-
-                // Swing timing
-                const isEvenStep = state.sequencerPosition % 2 === 0;
-                const swingDelay = isEvenStep ? (stepDuration * state.swingAmount / 100) * 0.5 : 0;
-                const nextStepDelay = stepDuration + swingDelay;
-
-                if (state.isSequencerPlaying) {
-                    state.sequencerIntervalId = setTimeout(playStep, nextStepDelay);
-                }
             };
 
-            playStep();
+            const scheduler = () => {
+                if (!state.isSequencerPlaying) return;
+                const stepDurationSec = (60 / state.bpm) / 4;
+
+                while (nextStepTime < ctx.currentTime + LOOKAHEAD_MS / 1000) {
+                    const currentStep = state.sequencerPosition;
+                    scheduleStep(currentStep, nextStepTime);
+
+                    // UI highlight
+                    const uiDelay = Math.max(0, (nextStepTime - ctx.currentTime) * 1000);
+                    ((step) => {
+                        setTimeout(() => {
+                            if (!state.isSequencerPlaying) return;
+                            document.querySelectorAll('.sequencer-step').forEach(s => s.classList.remove('playing'));
+                            document.querySelectorAll('.sequencer-row').forEach(row => {
+                                const btn = row.querySelector(`button:nth-child(${step + 2})`);
+                                if (btn) btn.classList.add('playing');
+                            });
+                        }, uiDelay);
+                    })(currentStep);
+
+                    // Swing on odd steps
+                    const isOddStep = currentStep % 2 === 1;
+                    const swingOffset = isOddStep ? stepDurationSec * (state.swingAmount / 100) * 0.33 : 0;
+                    nextStepTime += stepDurationSec + swingOffset;
+
+                    const nextPos = (state.sequencerPosition + 1) % state.stepCount;
+
+                    // End of cycle — check for pending scene
+                    if (nextPos === 0 && state.pendingScene !== null) {
+                        saveCurrentScene();
+                        const sceneToLoad = state.pendingScene;
+                        // Schedule scene switch at end of this cycle
+                        const switchDelay = Math.max(0, (nextStepTime - ctx.currentTime) * 1000);
+                        setTimeout(() => {
+                            if (state.isSequencerPlaying) {
+                                loadScene(sceneToLoad);
+                                initSequencerGrid();
+                            }
+                        }, switchDelay);
+                    }
+
+                    state.sequencerPosition = nextPos;
+                }
+
+                state.sequencerIntervalId = setTimeout(scheduler, SCHEDULE_INTERVAL);
+            };
+
+            scheduler();
         }
 
         function stopSequencer() {
             state.isSequencerPlaying = false;
             state.sequencerPosition = 0;
-            clearInterval(state.sequencerIntervalId);
             clearTimeout(state.sequencerIntervalId);
             document.getElementById('seqPlayBtn').classList.remove('active');
             document.querySelectorAll('.sequencer-step').forEach(step => {
@@ -3678,9 +3818,6 @@
                 recBtn.innerHTML = '<span style="font-size: 16px; line-height: 1;">⏹</span><span style="font-size: 11px; line-height: 1;">STOP</span>';
                 recBtn.classList.add('recording');
 
-                // Show VU meter
-                document.getElementById('vuMeterWrap').style.display = 'flex';
-
                 console.log('Recording started');
                 
                 // Visualização em tempo real
@@ -3712,37 +3849,7 @@
         }
         
         function visualizeRecording() {
-            if (!state.recordingAnalyser || !state.isRecording) {
-                // Hide VU meter when stopped
-                document.getElementById('vuMeterWrap').style.display = 'none';
-                document.getElementById('vuBar').style.width = '0%';
-                return;
-            }
-
-            const analyser = state.recordingAnalyser;
-            const bufferLength = analyser.frequencyBinCount;
-            const dataArray = new Uint8Array(bufferLength);
-            analyser.getByteTimeDomainData(dataArray);
-
-            // Compute RMS level
-            let sum = 0;
-            for (let i = 0; i < bufferLength; i++) {
-                const v = (dataArray[i] - 128) / 128;
-                sum += v * v;
-            }
-            const rms = Math.sqrt(sum / bufferLength);
-            const db = rms > 0 ? 20 * Math.log10(rms) : -Infinity;
-
-            // Map -60dB..0dB → 0..100%
-            const pct = Math.min(100, Math.max(0, (db + 60) / 60 * 100));
-            document.getElementById('vuBar').style.width = pct + '%';
-
-            // Peak label
-            const dbLabel = isFinite(db) ? db.toFixed(1) + ' dB' : '–∞';
-            document.getElementById('vuPeakLabel').style.color = db > -6 ? 'var(--danger)' : db > -18 ? 'var(--warning)' : 'var(--success)';
-            document.getElementById('vuPeakLabel').textContent = dbLabel;
-
-            requestAnimationFrame(visualizeRecording);
+            // VU meter removed
         }
 
         // Populate mic selector with available input devices
@@ -3828,6 +3935,9 @@
         initAudioContext();
         initMIDI();
         initKeyboard();
+        // Init scenes — point state aliases to scene 0
+        loadScene(0);
+        initSceneButtons();
         // Populate mic list if permission was already granted
         if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
             populateMicList();
