@@ -5,12 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#00ff88">
     <meta name="description" content="Professional browser-based sample slicer and 16-step sequencer with effects chain">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%230a0a0a' width='192' height='192'/><text x='96' y='120' font-family='monospace' font-size='80' font-weight='bold' fill='%2300ff88' text-anchor='middle'>◆</text></svg>">
-    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%230a0a0a' width='192' height='192'/><text x='96' y='120' font-family='monospace' font-size='80' font-weight='bold' fill='%2300ff88' text-anchor='middle'>◆</text></svg>">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%230a0a0a' width='192' height='192'/><text x='96' y='130' font-family='Consolas, monospace' font-size='140' font-weight='bold' fill='%236366f1' text-anchor='middle'>S</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%230a0a0a' width='192' height='192'/><text x='96' y='130' font-family='Consolas, monospace' font-size='140' font-weight='bold' fill='%236366f1' text-anchor='middle'>S</text></svg>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-    <title>SLICER — Sample Slicer</title>
+    <title>Spliiice — Sample Slicer</title>
     <style>
         * {
             margin: 0;
@@ -337,6 +337,11 @@
             justify-content: space-between;
         }
 
+        .header-title::before {
+            content: '';
+            font-size: 0;
+        }
+
         .header-title {
             font-size: 18px;
             font-weight: 700;
@@ -345,12 +350,6 @@
             display: flex;
             align-items: center;
             gap: 10px;
-        }
-
-        .header-title::before {
-            content: '◆';
-            color: var(--accent);
-            font-size: 16px;
         }
 
         .header-controls {
@@ -1079,7 +1078,7 @@
             gap: 8px;
             align-items: center;
             flex: 0 0 auto;
-            margin-left: auto;
+            margin-left: 20px;
         }
 
         .sequencer-play button {
@@ -1099,14 +1098,14 @@
 
         .sequencer-play button:first-child,
         .sequencer-play button:nth-child(2) {
-            min-width: 40px;
+            min-width: 44px;
             padding: 8px;
             font-size: 14px;
         }
 
         .sequencer-play #seqExportBtn {
-            min-width: auto;
-            padding: 8px 20px;
+            min-width: 80px;
+            padding: 8px 16px;
             font-size: 12px;
         }
 
@@ -1180,7 +1179,8 @@
             grid-template-columns: 100px 50px repeat(16, 1fr);
             gap: 4px;
             align-items: center;
-            max-height: 24px;
+            max-height: 48px;
+            min-height: 48px;
         }
 
         .sequencer-label {
@@ -1199,8 +1199,8 @@
         }
 
         .seq-mute, .seq-solo {
-            width: 22px;
-            height: 22px;
+            width: 28px;
+            height: 28px;
             border: 1px solid var(--border);
             background: var(--bg-control);
             color: var(--text-secondary);
@@ -1233,8 +1233,8 @@
         }
 
         .sequencer-step {
-            height: 24px;
-            min-width: 24px;
+            height: 40px;
+            min-width: 40px;
             background: var(--bg-panel);
             border: 1px solid var(--border);
             cursor: pointer;
@@ -1279,7 +1279,7 @@
     <div class="container">
         <!-- HEADER -->
         <header>
-            <div class="header-title">SLICER</div>
+            <div class="header-title">Spliiice</div>
             <div class="header-controls">
                 <span style="font-size: 14px; color: var(--text-secondary);">
                     <span id="sliceCount">0</span> slices
@@ -1469,9 +1469,9 @@
                                 <div class="knob-label">Mode</div>
                             </div>
                             <div class="knob-container">
-                                <div class="knob" data-target="reverbMix" data-min="0" data-max="100" data-value="0"></div>
-                                <input type="range" id="reverbMix" min="0" max="100" step="1" value="0" style="display: none;">
-                                <div class="knob-value"><span id="reverbMixVal">0</span>%</div>
+                                <div class="knob" data-target="reverbMix" data-min="0" data-max="100" data-value="50"></div>
+                                <input type="range" id="reverbMix" min="0" max="100" step="1" value="50" style="display: none;">
+                                <div class="knob-value"><span id="reverbMixVal">50</span>%</div>
                                 <div class="knob-label">Mix</div>
                             </div>
                         </div>
@@ -1799,7 +1799,8 @@
             const downsample = Math.max(1, Math.floor(rawData.length / width));
             const samples = Math.floor(rawData.length / downsample);
 
-            canvasCtx.fillStyle = 'var(--bg-control)';
+            // Usar cor hex em vez de CSS variable
+            canvasCtx.fillStyle = '#252f3f';
             canvasCtx.fillRect(0, 0, width, height);
 
             // Get current master volume
@@ -2512,8 +2513,8 @@
             state.slices.forEach((slice, idx) => {
                 const item = document.createElement('div');
                 item.className = `slice-item slice-item-${idx}`;
-                // Por defeito é collapsed, a menos que a slice tenha expanded = true
-                if (!slice.expanded) item.classList.add('collapsed');
+                // Por defeito as slices estão expandidas
+                if (slice.expanded === false) item.classList.add('collapsed');
                 if (state.selectedSlice === idx) item.classList.add('active');
                 if (state.selectedSliceForEditing === slice) item.classList.add('editing');
                 
@@ -3492,16 +3493,28 @@
             // Verificar se getUserMedia está disponível
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
                 alert('Microphone recording requires HTTPS or localhost. Please open the file from a local server.');
+                console.error('getUserMedia not available');
                 return;
             }
             
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                console.log('Requesting microphone access...');
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: false // Disable auto gain para permitir controle manual
+                    } 
+                });
+                
+                console.log('Microphone access granted');
                 
                 // Verificar mimeType suportado
                 const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' :
                                  MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' :
                                  MediaRecorder.isTypeSupported('audio/ogg;codecs=opus') ? 'audio/ogg;codecs=opus' : '';
+                
+                console.log('Using mimeType:', mimeType);
                 
                 const mediaRecorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
                 const ctx = initAudioContext();
@@ -3515,32 +3528,43 @@
                 state.recordingStream = stream;
                 
                 mediaRecorder.ondataavailable = (e) => {
+                    console.log('Chunk received:', e.data.size, 'bytes');
                     if (e.data.size > 0) {
                         state.audioChunks.push(e.data);
                     }
                 };
                 
+                mediaRecorder.onerror = (e) => {
+                    console.error('MediaRecorder error:', e.error);
+                    alert('Recording error: ' + e.error);
+                };
+                
                 mediaRecorder.onstop = async () => {
+                    console.log('Recording stopped. Total chunks:', state.audioChunks.length);
                     state.recordingAnalyser = null;
                     
                     if (state.audioChunks.length === 0) {
                         console.error('No audio data recorded');
-                        alert('No audio data was captured. Check microphone permissions.');
+                        alert('No audio data was captured. Check microphone permissions and try again.');
                         return;
                     }
                     
                     const audioBlob = new Blob(state.audioChunks, { type: mediaRecorder.mimeType });
+                    console.log('Audio blob created:', audioBlob.size, 'bytes');
                     
                     try {
                         const arrayBuffer = await audioBlob.arrayBuffer();
                         const decodeCtx = initAudioContext();
+                        console.log('Decoding audio...');
                         state.audioBuffer = await decodeCtx.decodeAudioData(arrayBuffer);
+                        console.log('Audio decoded successfully');
                         updateSampleInfo('recording_' + Date.now() + '.wav');
                         drawWaveform();
                         state.slices = [];
                         updateSlicesList();
                         initSequencerGrid();
                         initKeyboard();
+                        alert('Recording completed successfully!');
                     } catch (err) {
                         console.error('Audio decode error:', err);
                         alert('Error processing recording: ' + err.message);
@@ -3559,19 +3583,33 @@
                 recBtn.innerHTML = '<strong style="font-size: 16px;">⏹</strong><small>STOP</small>';
                 recBtn.classList.add('recording');
                 
+                console.log('Recording started');
+                
                 // Visualização em tempo real
                 visualizeRecording();
                 
                 // Stop recording after 120 seconds max
                 setTimeout(() => {
                     if (state.isRecording) {
+                        console.log('Auto-stopping recording (120s timeout)');
                         stopRecording();
                     }
                 }, 120000);
                 
             } catch (err) {
                 console.error('Microphone access error:', err);
-                alert('Microphone access denied: ' + err.message + '\nMake sure you\'re using HTTPS or localhost.');
+                
+                // Mensagens de erro mais específicas
+                let errorMsg = 'Microphone access denied';
+                if (err.name === 'NotAllowedError') {
+                    errorMsg = 'Permission denied. Please allow microphone access.';
+                } else if (err.name === 'NotFoundError') {
+                    errorMsg = 'No microphone found. Check your device.';
+                } else if (err.name === 'NotReadableError') {
+                    errorMsg = 'Microphone is already in use by another application.';
+                }
+                
+                alert(errorMsg + '\n\nMake sure you\'re using HTTPS or localhost and microphone is connected.');
             }
         }
         
