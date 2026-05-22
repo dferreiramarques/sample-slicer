@@ -1302,18 +1302,32 @@
             <div class="sidebar-left">
                 <div class="sidebar-section">
                     <div class="sidebar-title">Audio File</div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
-                        <div class="file-input-wrapper" style="margin: 0;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; height: 52px;">
+                        <div class="file-input-wrapper" style="margin: 0; height: 100%;">
                             <input type="file" id="audioFile" accept="audio/*">
-                            <label for="audioFile" class="file-label" style="font-size: 11px; padding: 12px 8px; min-height: auto;">
-                                <strong style="font-size: 16px;">+</strong>
-                                <small>Import</small>
+                            <label for="audioFile" class="file-label" style="height: 100%; padding: 0; min-height: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; line-height: 1; font-size: 11px; box-sizing: border-box;">
+                                <span style="font-size: 16px; line-height: 1;">+</span>
+                                <span style="font-size: 11px; line-height: 1;">Import</span>
                             </label>
                         </div>
-                        <button class="btn" id="recBtn" style="color: #ff3366; border-color: #ff3366; width: 100%; padding: 0; height: auto; font-size: 11px;">
-                            <strong style="font-size: 16px;">●</strong>
-                            <small>REC</small>
+                        <button class="btn" id="recBtn" style="color: #ff3366; border-color: #ff3366; width: 100%; height: 100%; padding: 0; font-size: 11px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; line-height: 1;">
+                            <span style="font-size: 16px; line-height: 1;">●</span>
+                            <span style="font-size: 11px; line-height: 1;">REC</span>
                         </button>
+                    </div>
+                    <!-- Mic selector -->
+                    <select id="micSelect" style="width: 100%; background: var(--bg-control); border: 1px solid var(--border); color: var(--text-secondary); font-size: 11px; padding: 5px 6px; border-radius: 6px; font-family: inherit; margin-bottom: 6px; cursor: pointer;">
+                        <option value="">🎙 Default Microphone</option>
+                    </select>
+                    <!-- VU Meter -->
+                    <div id="vuMeterWrap" style="display: none; flex-direction: column; gap: 3px; margin-bottom: 6px;">
+                        <div style="font-size: 10px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; display: flex; justify-content: space-between;">
+                            <span>Input Level</span>
+                            <span id="vuPeakLabel" style="color: var(--text-secondary);">–∞</span>
+                        </div>
+                        <div style="background: var(--bg-control); border: 1px solid var(--border); border-radius: 4px; height: 10px; overflow: hidden; position: relative;">
+                            <div id="vuBar" style="height: 100%; width: 0%; border-radius: 3px; transition: width 0.05s linear; background: linear-gradient(90deg, #10b981 0%, #f59e0b 70%, #ef4444 100%);"></div>
+                        </div>
                     </div>
                     <div id="sampleInfo" class="sample-info" style="display: none;">
                         <div><span class="label">File:</span> <span id="fileName">-</span></div>
@@ -1625,7 +1639,8 @@
             audioChunks: [],
             recordingAnalyser: null,
             recordingStream: null,
-            peakLevel: 0
+            peakLevel: 0,
+            micDeviceId: ''  // selected microphone deviceId
         };
 
         // === TAB SWITCHING ===
@@ -1782,44 +1797,71 @@
         const canvasCtx = canvas.getContext('2d');
 
         function drawWaveform() {
-            if (!state.audioBuffer) return;
+            if (!state.audioBuffer) {
+                console.warn('drawWaveform: no audioBuffer');
+                return;
+            }
 
             const container = document.querySelector('.waveform-container');
-            const height = container.clientHeight;
-            
-            // Zoom multiplies width
-            const baseWidth = container.clientWidth;
+            const clientWidth = container.clientWidth;
+            const clientHeight = container.clientHeight;
+
+            // If layout hasn't happened yet, retry on next frame
+            if (!clientWidth || !clientHeight) {
+                console.warn('drawWaveform: container has no size, retrying...');
+                requestAnimationFrame(() => drawWaveform());
+                return;
+            }
+
+            const height = clientHeight;
+            const baseWidth = clientWidth;
             const width = baseWidth * state.zoom;
-            
+
             canvas.width = width;
             canvas.height = height;
 
+            console.log('drawWaveform: canvas', width, 'x', height, '| duration', state.audioBuffer.duration);
+
             const rawData = state.audioBuffer.getChannelData(0);
+            console.log('rawData length:', rawData.length);
+            console.log('rawData first 10 values:', Array.from(rawData.slice(0, 10)));
+            
             // Downsampling bem balanceado
             const downsample = Math.max(1, Math.floor(rawData.length / width));
             const samples = Math.floor(rawData.length / downsample);
+            
+            console.log('Downsampling:', downsample, '| Samples to render:', samples);
 
             // Usar cor hex em vez de CSS variable
             canvasCtx.fillStyle = '#252f3f';
             canvasCtx.fillRect(0, 0, width, height);
+            console.log('✅ Background filled');
 
             // Get current master volume
             const masterVolume = parseFloat(document.getElementById('masterVolume').value);
+            console.log('Master volume:', masterVolume);
 
-            // Draw waveform com volume dinâmico - warm brown tone
+            // Draw waveform com volume dinâmico
             canvasCtx.strokeStyle = 'rgba(99, 102, 241, 0.8)';
             canvasCtx.lineWidth = 1.5;
             canvasCtx.beginPath();
 
+            let minVal = Infinity, maxVal = -Infinity;
+            
             for (let i = 0; i < samples; i++) {
                 const index = Math.floor(i * downsample);
-                const value = rawData[index] * masterVolume; // Aplica volume
+                const value = rawData[index] * masterVolume;
+                minVal = Math.min(minVal, value);
+                maxVal = Math.max(maxVal, value);
+                
                 const x = (i / samples) * width;
                 const y = height / 2 - (value * height / 2);
                 if (i === 0) canvasCtx.moveTo(x, y);
                 else canvasCtx.lineTo(x, y);
             }
             canvasCtx.stroke();
+            
+            console.log('✅ Waveform drawn | Min:', minVal, 'Max:', maxVal);
 
             // Draw slices
             drawSlices();
@@ -1933,10 +1975,13 @@
 
             // Double-click cria nova slice
             if (e.detail === 2) {
+                console.log('🔪 Double-click detected, creating new slice');
                 const time = (xPixels / cw) * state.audioBuffer.duration;
+                console.log('Click position time:', time.toFixed(3), 's');
                 
                 const nextSlice = state.slices.find(s => s.start > time);
                 const endTime = nextSlice ? nextSlice.start : state.audioBuffer.duration;
+                console.log('End time:', endTime.toFixed(3), 's');
 
                 const newSlice = {
                     start: time,
@@ -1954,9 +1999,14 @@
                 state.slices.sort((a, b) => a.start - b.start);
                 state.selectedSliceForEditing = newSlice;
                 newSlice.expanded = true;
+                
+                console.log('✅ Slice created:', newSlice);
+                console.log('Total slices:', state.slices.length);
+                
                 initSequencerGrid();
                 updateSlicesList();
                 drawWaveform();
+                console.log('✅ UI updated');
                 return;
             }
 
@@ -2510,6 +2560,14 @@
             list.innerHTML = '';
             document.getElementById('sliceCount').textContent = state.slices.length;
 
+            console.log('📝 updateSlicesList() called');
+            console.log('slices.length:', state.slices.length);
+            console.log('audioBuffer:', state.audioBuffer);
+
+            if (!state.audioBuffer) {
+                console.warn('⚠️ No audioBuffer, rendering slices without duration');
+            }
+
             state.slices.forEach((slice, idx) => {
                 const item = document.createElement('div');
                 item.className = `slice-item slice-item-${idx}`;
@@ -2521,6 +2579,9 @@
                 const color = state.colors[idx % state.colors.length];
                 const note = state.noteOffset + idx;
                 const noteName = getNoteName(note);
+
+                // Proteção para audioBuffer null
+                const maxDuration = state.audioBuffer ? state.audioBuffer.duration : 10;
 
                 item.innerHTML = `
                     <div class="slice-header" onclick="event.stopPropagation(); state.selectedSliceForEditing = state.slices[${idx}]; state.slices[${idx}].expanded = !state.slices[${idx}].expanded; updateSlicesList(); drawWaveform(); scrollToSlice(state.slices[${idx}]);">
@@ -2553,13 +2614,13 @@
                         </div>
                         <div class="param-slider">
                             <label>Start</label>
-                            <input type="range" min="0" max="${state.audioBuffer.duration}" step="0.001" value="${slice.start}"
+                            <input type="range" min="0" max="${maxDuration}" step="0.001" value="${slice.start}"
                                 onchange="updateSliceParam(${idx}, 'start', this.value); drawWaveform(); updatePlayingSliceAudio(${idx});">
                             <span class="param-value">${(slice.start * 1000).toFixed(0)}ms</span>
                         </div>
                         <div class="param-slider">
                             <label>End</label>
-                            <input type="range" min="0" max="${state.audioBuffer.duration}" step="0.001" value="${slice.end}"
+                            <input type="range" min="0" max="${maxDuration}" step="0.001" value="${slice.end}"
                                 onchange="updateSliceParam(${idx}, 'end', this.value); drawWaveform(); updatePlayingSliceAudio(${idx});">
                             <span class="param-value">${(slice.end * 1000).toFixed(0)}ms</span>
                         </div>
@@ -2596,7 +2657,10 @@
                     drawWaveform();
                 });
                 list.appendChild(item);
+                console.log(`✅ Slice ${idx} rendered`);
             });
+
+            console.log('✅ updateSlicesList() completed');
         }
 
         function updateSliceParam(idx, param, value) {
@@ -3499,13 +3563,17 @@
             
             try {
                 console.log('Requesting microphone access...');
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    audio: {
-                        echoCancellation: true,
-                        noiseSuppression: true,
-                        autoGainControl: false // Disable auto gain para permitir controle manual
-                    } 
-                });
+                const audioConstraints = {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: false
+                };
+                if (state.micDeviceId) {
+                    audioConstraints.deviceId = { exact: state.micDeviceId };
+                }
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints });
+                // Refresh mic list now that we have permission (labels become available)
+                populateMicList();
                 
                 console.log('Microphone access granted');
                 
@@ -3542,37 +3610,64 @@
                 mediaRecorder.onstop = async () => {
                     console.log('Recording stopped. Total chunks:', state.audioChunks.length);
                     state.recordingAnalyser = null;
-                    
+
+                    const recBtn = document.getElementById('recBtn');
+                    recBtn.innerHTML = '<span style="font-size: 16px; line-height: 1;">●</span><span style="font-size: 11px; line-height: 1;">REC</span>';
+                    recBtn.style.background = '';
+
                     if (state.audioChunks.length === 0) {
                         console.error('No audio data recorded');
                         alert('No audio data was captured. Check microphone permissions and try again.');
                         return;
                     }
-                    
-                    const audioBlob = new Blob(state.audioChunks, { type: mediaRecorder.mimeType });
-                    console.log('Audio blob created:', audioBlob.size, 'bytes');
-                    
-                    try {
-                        const arrayBuffer = await audioBlob.arrayBuffer();
-                        const decodeCtx = initAudioContext();
-                        console.log('Decoding audio...');
-                        state.audioBuffer = await decodeCtx.decodeAudioData(arrayBuffer);
-                        console.log('Audio decoded successfully');
-                        updateSampleInfo('recording_' + Date.now() + '.wav');
-                        drawWaveform();
-                        state.slices = [];
-                        updateSlicesList();
-                        initSequencerGrid();
-                        initKeyboard();
-                        alert('Recording completed successfully!');
-                    } catch (err) {
-                        console.error('Audio decode error:', err);
-                        alert('Error processing recording: ' + err.message);
-                    }
-                    
-                    const recBtn = document.getElementById('recBtn');
-                    recBtn.innerHTML = '<strong style="font-size: 16px;">●</strong><small>REC</small>';
-                    recBtn.style.background = '';
+
+                    const audioBlob = new Blob(state.audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+                    console.log('Audio blob size:', audioBlob.size, 'bytes, type:', audioBlob.type);
+
+                    const reader = new FileReader();
+                    reader.onload = async (ev) => {
+                        try {
+                            const arrayBuffer = ev.target.result;
+
+                            const decodeCtx = initAudioContext();
+                            if (decodeCtx.state === 'suspended') {
+                                await decodeCtx.resume();
+                            }
+
+                            // Use callback form for maximum browser compatibility
+                            decodeCtx.decodeAudioData(
+                                arrayBuffer,
+                                (decodedBuffer) => {
+                                    console.log('✅ Audio decoded. Duration:', decodedBuffer.duration);
+                                    state.audioBuffer = decodedBuffer;
+
+                                    updateSampleInfo('rec_' + Date.now() + '.wav');
+                                    state.slices = [];
+                                    updateSlicesList();
+                                    initSequencerGrid();
+                                    initKeyboard();
+
+                                    // Double rAF: first frame does layout, second frame paints
+                                    requestAnimationFrame(() => {
+                                        requestAnimationFrame(() => {
+                                            drawWaveform();
+                                        });
+                                    });
+                                },
+                                (err) => {
+                                    console.error('decodeAudioData error:', err);
+                                    alert('Error decoding audio: ' + (err && err.message ? err.message : err));
+                                }
+                            );
+                        } catch (err) {
+                            console.error('Audio processing error:', err);
+                            alert('Error processing recording: ' + err.message);
+                        }
+                    };
+                    reader.onerror = () => {
+                        alert('Error reading recorded audio blob.');
+                    };
+                    reader.readAsArrayBuffer(audioBlob);
                 };
                 
                 mediaRecorder.start(100); // Chunks a cada 100ms
@@ -3580,9 +3675,12 @@
                 state.isRecording = true;
                 
                 const recBtn = document.getElementById('recBtn');
-                recBtn.innerHTML = '<strong style="font-size: 16px;">⏹</strong><small>STOP</small>';
+                recBtn.innerHTML = '<span style="font-size: 16px; line-height: 1;">⏹</span><span style="font-size: 11px; line-height: 1;">STOP</span>';
                 recBtn.classList.add('recording');
-                
+
+                // Show VU meter
+                document.getElementById('vuMeterWrap').style.display = 'flex';
+
                 console.log('Recording started');
                 
                 // Visualização em tempo real
@@ -3614,20 +3712,77 @@
         }
         
         function visualizeRecording() {
-            // Sem visualização no canvas - feedback visual só no botão
-            if (state.recordingAnalyser && state.isRecording) {
-                requestAnimationFrame(visualizeRecording);
+            if (!state.recordingAnalyser || !state.isRecording) {
+                // Hide VU meter when stopped
+                document.getElementById('vuMeterWrap').style.display = 'none';
+                document.getElementById('vuBar').style.width = '0%';
+                return;
+            }
+
+            const analyser = state.recordingAnalyser;
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            analyser.getByteTimeDomainData(dataArray);
+
+            // Compute RMS level
+            let sum = 0;
+            for (let i = 0; i < bufferLength; i++) {
+                const v = (dataArray[i] - 128) / 128;
+                sum += v * v;
+            }
+            const rms = Math.sqrt(sum / bufferLength);
+            const db = rms > 0 ? 20 * Math.log10(rms) : -Infinity;
+
+            // Map -60dB..0dB → 0..100%
+            const pct = Math.min(100, Math.max(0, (db + 60) / 60 * 100));
+            document.getElementById('vuBar').style.width = pct + '%';
+
+            // Peak label
+            const dbLabel = isFinite(db) ? db.toFixed(1) + ' dB' : '–∞';
+            document.getElementById('vuPeakLabel').style.color = db > -6 ? 'var(--danger)' : db > -18 ? 'var(--warning)' : 'var(--success)';
+            document.getElementById('vuPeakLabel').textContent = dbLabel;
+
+            requestAnimationFrame(visualizeRecording);
+        }
+
+        // Populate mic selector with available input devices
+        async function populateMicList() {
+            const select = document.getElementById('micSelect');
+            try {
+                // Need at least one permission grant to enumerate labels
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const mics = devices.filter(d => d.kind === 'audioinput');
+                select.innerHTML = '';
+                mics.forEach((d, i) => {
+                    const opt = document.createElement('option');
+                    opt.value = d.deviceId;
+                    opt.textContent = d.label || ('Microphone ' + (i + 1));
+                    if (d.deviceId === state.micDeviceId) opt.selected = true;
+                    select.appendChild(opt);
+                });
+                if (!state.micDeviceId && mics.length > 0) {
+                    state.micDeviceId = mics[0].deviceId;
+                }
+            } catch (e) {
+                console.warn('Could not enumerate devices:', e);
             }
         }
+
+        document.getElementById('micSelect').addEventListener('change', (e) => {
+            state.micDeviceId = e.target.value;
+        });
         
         function stopRecording() {
             if (state.mediaRecorder && state.isRecording) {
                 state.mediaRecorder.stop();
-                state.mediaRecorder.stream.getTracks().forEach(track => track.stop());
+                if (state.recordingStream) {
+                    state.recordingStream.getTracks().forEach(track => track.stop());
+                    state.recordingStream = null;
+                }
                 state.isRecording = false;
                 
                 const recBtn = document.getElementById('recBtn');
-                recBtn.innerHTML = '<strong style="font-size: 16px;">●</strong><small>REC</small>';
+                recBtn.innerHTML = '<span style="font-size: 16px; line-height: 1;">●</span><span style="font-size: 11px; line-height: 1;">REC</span>';
                 recBtn.classList.remove('recording');
             }
         }
@@ -3673,6 +3828,10 @@
         initAudioContext();
         initMIDI();
         initKeyboard();
+        // Populate mic list if permission was already granted
+        if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+            populateMicList();
+        }
 
         document.getElementById('saveBtn').addEventListener('click', saveProject);
         document.getElementById('loadBtn').addEventListener('click', loadProject);
