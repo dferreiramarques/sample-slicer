@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#00ff88">
     <meta name="description" content="Professional browser-based sample slicer and 16-step sequencer with effects chain">
+    <link rel="manifest" href="./manifest.json">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%230a0a0a' width='192' height='192'/><text x='96' y='130' font-family='Consolas, monospace' font-size='140' font-weight='bold' fill='%236366f1' text-anchor='middle'>S</text></svg>">
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%230a0a0a' width='192' height='192'/><text x='96' y='130' font-family='Consolas, monospace' font-size='140' font-weight='bold' fill='%236366f1' text-anchor='middle'>S</text></svg>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -55,8 +56,8 @@
 
         /* Custom scrollbar */
         ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
+            width: 16px;
+            height: 16px;
         }
 
         ::-webkit-scrollbar-track {
@@ -335,6 +336,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
         }
 
         .header-title::before {
@@ -420,6 +422,7 @@
             gap: 0;
             height: 44px;
             padding: 0 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
         }
 
         .tab-btn {
@@ -955,7 +958,7 @@
             border-top: 1px solid var(--border);
             padding: 15px;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(45px, 1fr));
+            grid-template-columns: repeat(7, 1fr);
             gap: 8px;
             overflow-y: auto;
         }
@@ -1103,6 +1106,20 @@
             font-size: 14px;
         }
 
+        .sequencer-play #seqClearBtn {
+            min-width: auto;
+            padding: 8px 12px;
+            font-size: 11px;
+            color: var(--danger);
+            font-weight: 700;
+        }
+
+        .sequencer-play #seqClearBtn:hover {
+            background: var(--danger);
+            color: #fff;
+            border-color: var(--danger);
+        }
+
         .sequencer-play #seqExportBtn {
             min-width: 80px;
             padding: 8px 16px;
@@ -1176,7 +1193,7 @@
 
         .sequencer-row {
             display: grid;
-            grid-template-columns: 100px 50px repeat(16, 1fr);
+            grid-template-columns: 100px 50px repeat(var(--step-count, 16), 1fr);
             gap: 4px;
             align-items: center;
             max-height: 48px;
@@ -1279,7 +1296,7 @@
     <div class="container">
         <!-- HEADER -->
         <header>
-            <div class="header-title">Spliiice</div>
+            <div class="header-title" id="appTitle" style="cursor: pointer;">Spliiice</div>
             <div class="header-controls">
                 <span style="font-size: 14px; color: var(--text-secondary);">
                     <span id="sliceCount">0</span> slices
@@ -1474,9 +1491,9 @@
                                 <div class="knob-label">Mode</div>
                             </div>
                             <div class="knob-container">
-                                <div class="knob" data-target="reverbMix" data-min="0" data-max="100" data-value="50"></div>
-                                <input type="range" id="reverbMix" min="0" max="100" step="1" value="50" style="display: none;">
-                                <div class="knob-value"><span id="reverbMixVal">50</span>%</div>
+                                <div class="knob" data-target="reverbMix" data-min="0" data-max="100" data-value="0"></div>
+                                <input type="range" id="reverbMix" min="0" max="100" step="1" value="0" style="display: none;">
+                                <div class="knob-value"><span id="reverbMixVal">0</span>%</div>
                                 <div class="knob-label">Mix</div>
                             </div>
                         </div>
@@ -1511,6 +1528,7 @@
                         <span style="font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); min-width: 46px;">Scene</span>
                         <div id="sceneBtns" style="display: flex; gap: 4px;">
                         </div>
+                        <button id="scenePlayBtn" style="width: 32px; height: 32px; padding: 0; margin-left: 8px; background: var(--bg-control); border: 1px solid var(--border); border-radius: 4px; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: all 0.15s ease;" title="Play all filled scenes sequentially">▶</button>
                         <div style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
                             <span style="font-size: 10px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px;">Next</span>
                             <div id="pendingSceneIndicator" style="font-size: 11px; font-weight: 700; color: var(--warning); min-width: 16px; text-align: center;">—</div>
@@ -1539,6 +1557,7 @@
                             </select>
                         </div>
                         <div class="sequencer-play" style="margin-left: auto;">
+                            <button id="seqClearBtn" title="Clear current sequence" style="color: var(--danger);">CLEAR</button>
                             <button id="seqPlayBtn" title="Play">▶</button>
                             <button id="seqStopBtn" title="Stop">■</button>
                             <button id="seqExportBtn" class="btn">Export</button>
@@ -1557,6 +1576,41 @@
             <div id="keyboard-white" class="keyboard-white" style="display: flex; gap: 3px; justify-content: center; flex-wrap: wrap;"></div>
         </div>
 
+        <!-- CREDITS MODAL -->
+        <div id="creditsModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.7); z-index: 9999; justify-content: center; align-items: center;">
+            <div style="background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px; padding: 32px; max-width: 500px; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);">
+                <div style="text-align: center; margin-bottom: 32px;">
+                    <h1 style="font-size: 32px; font-weight: 800; margin-bottom: 8px; color: var(--accent);">Spliiice</h1>
+                    <p style="font-size: 14px; color: var(--text-secondary);">Professional Sample Slicer & 16-Step Sequencer</p>
+                </div>
+
+                <div style="border-top: 1px solid var(--border); padding-top: 24px; margin-bottom: 24px;">
+                    <p style="font-size: 14px; color: var(--text-primary); line-height: 1.6; margin-bottom: 12px;">
+                        <span style="font-weight: 600;">a David Marques design</span>
+                    </p>
+                    <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 12px;">
+                        vibe coded from scratch with <span style="color: var(--accent); font-weight: 500;">Claude.ai</span> as ideation and coding pal
+                    </p>
+                    <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
+                        MIT License
+                    </p>
+                </div>
+
+                <div style="border-top: 1px solid var(--border); padding-top: 24px; margin-bottom: 24px; text-align: center;">
+                    <p style="font-size: 14px; color: var(--text-primary); margin-bottom: 16px;">
+                        <span style="font-weight: 600;">a Monco.io product</span>
+                    </p>
+                    <a href="https://ko-fi.com/dferreiramarques" target="_blank" style="display: inline-block; padding: 10px 20px; background: var(--accent); color: var(--bg-dark); text-decoration: none; border-radius: 4px; font-weight: 600; font-size: 13px; transition: all 0.2s ease; cursor: pointer;">
+                        ☕ Support on Ko-fi
+                    </a>
+                </div>
+
+                <button onclick="document.getElementById('creditsModal').style.display = 'none';" style="width: 100%; margin-top: 32px; padding: 12px 16px; background: var(--accent); color: var(--bg-dark); border: none; border-radius: 4px; font-weight: 600; cursor: pointer; font-size: 14px; transition: all 0.2s ease;">
+                    Close
+                </button>
+            </div>
+        </div>
+
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" onerror="console.warn('JSZip not loaded')"></script>
@@ -1565,6 +1619,17 @@
         if (typeof JSZip === 'undefined') {
             window.JSZip = class { constructor() { throw new Error('JSZip not available'); } };
         }
+
+        // === CREDITS MODAL ===
+        document.getElementById('appTitle')?.addEventListener('click', () => {
+            document.getElementById('creditsModal').style.display = 'flex';
+        });
+
+        document.getElementById('creditsModal')?.addEventListener('click', (e) => {
+            if (e.target.id === 'creditsModal') {
+                document.getElementById('creditsModal').style.display = 'none';
+            }
+        });
 
         // === REVERB GLOBAL NODES ===
         let reverbConvolverNode = null;
@@ -1651,6 +1716,9 @@
             sequencerIntervalId: null,
             swingAmount: 0, // 0-100%
             stepCount: 16, // current scene step count
+            // Scene playback
+            scenePlaybackQueue: [], // Array of scene indices to play
+            scenePlaybackIndex: 0,  // Current index in queue
             // Effects
             effects: {
                 compressor: { ratio: 1, mix: 0, enabled: true },
@@ -1668,6 +1736,9 @@
             peakLevel: 0,
             micDeviceId: ''  // selected microphone deviceId
         };
+
+        // Rastrear valores anteriores de start/end para detectar mudanças
+        const slicePrevValues = {};
 
         // === TAB SWITCHING ===
         document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -1818,7 +1889,9 @@
         });
 
         document.getElementById('reverbMix').addEventListener('input', (e) => {
-            state.effects.reverb.mix = parseInt(e.target.value);
+            // Scale: 0-100 now represents 0-50 of the old value
+            const scaledValue = (parseInt(e.target.value) / 100) * 50;
+            state.effects.reverb.mix = scaledValue;
             document.getElementById('reverbMixVal').textContent = e.target.value;
             updateReverbMix(); // Atualizar reverb convolver mix
         });
@@ -1983,10 +2056,27 @@
             const slice = state.slices[sliceIdx];
             const sourceObj = state.playingSources[sliceIdx];
             
-            if (sourceObj.mode === 'loop' && sourceObj.source && sourceObj.source.loop) {
-                sourceObj.source.loopStart = slice.start;
-                sourceObj.source.loopEnd = slice.end;
+            // Inicializar tracking se não existir
+            if (!slicePrevValues[sliceIdx]) {
+                slicePrevValues[sliceIdx] = {
+                    start: slice.start,
+                    end: slice.end
+                };
             }
+            
+            const prevValues = slicePrevValues[sliceIdx];
+            const startChanged = prevValues.start !== slice.start;
+            const endChanged = prevValues.end !== slice.end;
+            
+            // Se mudou start OU end - parar e retrigger imediatamente
+            if (startChanged || endChanged) {
+                stopSlice(sliceIdx);
+                playSlice(sliceIdx);
+            }
+            
+            // Atualizar valores anteriores
+            prevValues.start = slice.start;
+            prevValues.end = slice.end;
         }
 
         canvas.addEventListener('mousedown', (e) => {
@@ -2184,7 +2274,7 @@
             if (!state.audioBuffer) return;
 
             const rawData = state.audioBuffer.getChannelData(0);
-            const sensitivity = parseFloat(document.getElementById('sensitivity').value);
+            const sensitivity = 1 - parseFloat(document.getElementById('sensitivity').value);
             // MUITO menos sensível - threshold 5x maior
             const threshold = 0.15 * sensitivity;
             // Mínimo de duração entre transientes (200ms)
@@ -2232,7 +2322,8 @@
 
         document.getElementById('detectBtn').addEventListener('click', detectTransients);
         document.getElementById('sensitivity').addEventListener('input', (e) => {
-            document.getElementById('sensitivityValue').textContent = Math.round(parseFloat(e.target.value) * 100) + '%';
+            const inverted = 100 - Math.round(parseFloat(e.target.value) * 100);
+            document.getElementById('sensitivityValue').textContent = inverted + '%';
         });
 
         // === MIDI MODE SWITCH ===
@@ -2247,6 +2338,7 @@
             samplerBtn.style.color = '';
             samplerBtn.style.borderColor = '';
             document.getElementById('midiModeHint').textContent = 'Each key triggers a different slice';
+            initKeyboard(); // Reinit keyboard para mostrar teclas
         });
 
         document.getElementById('midiModeSampler').addEventListener('click', () => {
@@ -2259,7 +2351,16 @@
             triggerBtn.style.background = '';
             triggerBtn.style.color = '';
             triggerBtn.style.borderColor = '';
-            document.getElementById('midiModeHint').textContent = 'Selected slice plays at different pitches (C4 = original)';
+            document.getElementById('midiModeHint').textContent = 'Selected slice plays at different pitches (use MIDI or keyboard QWERTY)';
+            // Desabilitar teclado virtual em sampler mode
+            const keyboardBlack = document.getElementById('keyboard-black');
+            const keyboardWhite = document.getElementById('keyboard-white');
+            if (keyboardBlack) keyboardBlack.style.pointerEvents = 'none';
+            if (keyboardWhite) keyboardWhite.style.pointerEvents = 'none';
+            document.querySelectorAll('.key').forEach(btn => {
+                btn.style.opacity = '0.3';
+                btn.style.cursor = 'not-allowed';
+            });
         });
 
         // === FULL WAVEFORM PLAYBACK ===
@@ -2633,9 +2734,9 @@
                     <div class="slice-params">
                         <div class="param-slider">
                             <label>Pitch</label>
-                            <input type="range" min="0.5" max="2" step="0.05" value="${slice.pitch}" 
-                                onchange="updateSliceParam(${idx}, 'pitch', this.value); updateSlicesList();">
-                            <span class="param-value">${(slice.pitch * 100).toFixed(0)}%</span>
+                            <input type="range" min="-24" max="24" step="1" value="${(Math.log2(slice.pitch) * 12).toFixed(0)}" 
+                                onchange="updateSlicePitchTones(${idx}, this.value); updateSlicesList();">
+                            <span class="param-value">${(Math.log2(slice.pitch) * 12).toFixed(0)}t</span>
                         </div>
                         <div class="param-slider">
                             <label>Vol</label>
@@ -2652,12 +2753,14 @@
                         <div class="param-slider">
                             <label>Start</label>
                             <input type="range" min="0" max="${maxDuration}" step="0.001" value="${slice.start}"
+                                oninput="updateSliceParam(${idx}, 'start', this.value); drawWaveform(); updatePlayingSliceAudio(${idx});"
                                 onchange="updateSliceParam(${idx}, 'start', this.value); drawWaveform(); updatePlayingSliceAudio(${idx});">
                             <span class="param-value">${(slice.start * 1000).toFixed(0)}ms</span>
                         </div>
                         <div class="param-slider">
                             <label>End</label>
                             <input type="range" min="0" max="${maxDuration}" step="0.001" value="${slice.end}"
+                                oninput="updateSliceParam(${idx}, 'end', this.value); drawWaveform(); updatePlayingSliceAudio(${idx});"
                                 onchange="updateSliceParam(${idx}, 'end', this.value); drawWaveform(); updatePlayingSliceAudio(${idx});">
                             <span class="param-value">${(slice.end * 1000).toFixed(0)}ms</span>
                         </div>
@@ -2694,6 +2797,11 @@
             });
 
             console.log('✅ updateSlicesList() completed');
+            
+            // Reinitialize keyboard quando há slices
+            if (state.slices.length > 0) {
+                initKeyboard();
+            }
         }
 
         function updateSliceParam(idx, param, value) {
@@ -2706,6 +2814,14 @@
             } else {
                 state.slices[idx][param] = parseFloat(value);
             }
+        }
+
+        function updateSlicePitchTones(idx, tones) {
+            // Convert semitones to pitch multiplier
+            // 12 semitones = 1 octave = 2x pitch
+            const toneValue = parseInt(tones);
+            const pitch = Math.pow(2, toneValue / 12);
+            state.slices[idx].pitch = pitch;
         }
 
         function deleteSlice(idx) {
@@ -2733,22 +2849,26 @@
             
             keyboardBlack.innerHTML = '';
             keyboardWhite.innerHTML = '';
+            
+            // Re-enable pointerEvents when switching back to trigger mode
+            keyboardBlack.style.pointerEvents = 'auto';
+            keyboardWhite.style.pointerEvents = 'auto';
 
-            // Teclas pretas com vazios: [vazio]WE[vazio]TYU[vazio]OP
+            // Teclas pretas com vazios
             const blackKeys = [
-                { key: '', idx: -1, isPlaceholder: true },   // Vazio
+                { key: '', idx: -1, isPlaceholder: true },
                 { key: 'W', idx: 1 },
                 { key: 'E', idx: 3 },
-                { key: '', idx: -1, isPlaceholder: true },   // Vazio
+                { key: '', idx: -1, isPlaceholder: true },
                 { key: 'T', idx: 6 },
                 { key: 'Y', idx: 8 },
                 { key: 'U', idx: 10 },
-                { key: '', idx: -1, isPlaceholder: true },   // Vazio
+                { key: '', idx: -1, isPlaceholder: true },
                 { key: 'O', idx: 13 },
                 { key: 'P', idx: 15 },
             ];
 
-            // Teclas brancas: A S D F G H J K L (termina no L)
+            // Teclas brancas
             const whitKeys = [
                 { key: 'A', idx: 0 },
                 { key: 'S', idx: 2 },
@@ -2761,24 +2881,21 @@
                 { key: 'L', idx: 14 },
             ];
 
-            // Adicionar teclas pretas com vazios
+            // Adicionar teclas pretas
             blackKeys.forEach(note => {
                 const btn = document.createElement('button');
                 btn.className = 'key';
                 
                 if (note.isPlaceholder) {
-                    // Botão vazio
                     btn.style.background = 'transparent';
                     btn.style.border = 'none';
                     btn.style.color = 'transparent';
-                    btn.style.minWidth = '35px';
-                    btn.style.padding = '4px 8px';
+                    btn.style.minWidth = '70px';
+                    btn.style.padding = '8px 16px';
                     btn.style.cursor = 'default';
                     btn.innerHTML = '';
                     btn.style.pointerEvents = 'none';
                 } else {
-                    btn.setAttribute('data-slice', note.idx);
-                    
                     if (note.idx < state.slices.length && state.slices[note.idx].enabled) {
                         const noteMidi = state.noteOffset + note.idx;
                         const noteName = getNoteName(noteMidi);
@@ -2790,30 +2907,32 @@
 
                     btn.addEventListener('click', () => {
                         if (note.idx < state.slices.length && state.slices[note.idx].enabled) {
+                            // Visual feedback
+                            btn.classList.add('active');
+                            setTimeout(() => btn.classList.remove('active'), 100);
                             playSlice(note.idx);
                         }
                     });
 
                     btn.style.background = 'rgba(40, 40, 40, 0.9)';
                     btn.style.color = '#ccc';
-                    btn.style.minWidth = '35px';
-                    btn.style.padding = '4px 8px';
+                    btn.style.minWidth = '70px';
+                    btn.style.padding = '8px 16px';
                 }
                 
                 keyboardBlack.appendChild(btn);
             });
 
-            // Adicionar spacer invisível no início da linha branca (meia largura)
+            // Spacer
             const spacer = document.createElement('div');
-            spacer.style.minWidth = '17.5px';
-            spacer.style.padding = '4px 0';
+            spacer.style.minWidth = '35px';
+            spacer.style.padding = '8px 0';
             keyboardWhite.appendChild(spacer);
 
             // Adicionar teclas brancas
             whitKeys.forEach(note => {
                 const btn = document.createElement('button');
                 btn.className = 'key';
-                btn.setAttribute('data-slice', note.idx);
                 
                 if (note.idx < state.slices.length && state.slices[note.idx].enabled) {
                     const noteMidi = state.noteOffset + note.idx;
@@ -2826,46 +2945,113 @@
 
                 btn.addEventListener('click', () => {
                     if (note.idx < state.slices.length && state.slices[note.idx].enabled) {
+                        // Visual feedback
+                        btn.classList.add('active');
+                        setTimeout(() => btn.classList.remove('active'), 100);
                         playSlice(note.idx);
                     }
                 });
 
                 btn.style.background = 'rgba(80, 80, 80, 0.8)';
                 btn.style.color = '#ddd';
-                btn.style.minWidth = '35px';
-                btn.style.padding = '4px 8px';
+                btn.style.minWidth = '70px';
+                btn.style.padding = '8px 16px';
                 keyboardWhite.appendChild(btn);
             });
         }
 
+
         // === KEYBOARD EVENTS ===
         document.addEventListener('keydown', (e) => {
-            // Keys 1-8: switch scenes (only when sequencer tab is active or always)
+            // Spacebar: stop sequencer
+            if (e.code === 'Space') {
+                if (state.isSequencerPlaying) {
+                    e.preventDefault();
+                    stopSequencer();
+                }
+                return;
+            }
+
+            // Keys 1-8: switch scenes
             if (e.key >= '1' && e.key <= '8' && !e.ctrlKey && !e.metaKey && !e.altKey) {
                 const sceneIdx = parseInt(e.key) - 1;
-                saveCurrentScene();
                 queueScene(sceneIdx);
                 return;
             }
 
             const keyIdx = state.keyBindings.indexOf(e.key.toUpperCase());
             if (keyIdx !== -1 && keyIdx < state.slices.length) {
-                const slice = state.slices[keyIdx];
-                if (slice && slice.enabled && !state.pressedKeys[keyIdx]) {
-                    state.pressedKeys[keyIdx] = true;
-                    playSlice(keyIdx);
+                if (state.midiMode === 'sampler') {
+                    // Sampler mode: piano layout
+                    const pianoMap = {
+                        'A': 60,  // C
+                        'W': 61,  // C#
+                        'S': 62,  // D
+                        'E': 63,  // D#
+                        'D': 64,  // E
+                        'F': 65,  // F
+                        'T': 66,  // F#
+                        'G': 67,  // G
+                        'Y': 68,  // G#
+                        'H': 69,  // A
+                        'U': 70,  // A#
+                        'J': 71,  // B
+                        'K': 72,  // C
+                        'O': 73,  // C#
+                        'L': 74   // D
+                    };
+                    
+                    const midiNote = pianoMap[e.key.toUpperCase()];
+                    if (midiNote) {
+                        handleVirtualMidiMessage(midiNote, 127); // velocity 127
+                    }
+                } else {
+                    // Trigger mode - adicionar visual feedback
+                    handleVirtualMidiMessage(state.noteOffset + keyIdx, 127);
+                    
+                    // Highlight the key button
+                    const keyChar = e.key.toUpperCase();
+                    const buttons = document.querySelectorAll('.key');
+                    buttons.forEach(btn => {
+                        if (btn.textContent && btn.textContent.charAt(0) === keyChar) {
+                            btn.classList.add('active');
+                            setTimeout(() => btn.classList.remove('active'), 100);
+                        }
+                    });
                 }
             }
         });
 
         document.addEventListener('keyup', (e) => {
-            const keyIdx = state.keyBindings.indexOf(e.key.toUpperCase());
-            if (keyIdx !== -1 && keyIdx < state.slices.length) {
-                state.pressedKeys[keyIdx] = false;
+            if (state.midiMode === 'sampler') {
+                // Sampler mode: piano layout
+                const pianoMap = {
+                    'A': 60,  // C
+                    'W': 61,  // C#
+                    'S': 62,  // D
+                    'E': 63,  // D#
+                    'D': 64,  // E
+                    'F': 65,  // F
+                    'T': 66,  // F#
+                    'G': 67,  // G
+                    'Y': 68,  // G#
+                    'H': 69,  // A
+                    'U': 70,  // A#
+                    'J': 71,  // B
+                    'K': 72,  // C
+                    'O': 73,  // C#
+                    'L': 74   // D
+                };
                 
-                const slice = state.slices[keyIdx];
-                if (slice && slice.mode === 'loop') {
-                    stopSlice(keyIdx);
+                const midiNote = pianoMap[e.key.toUpperCase()];
+                if (midiNote) {
+                    handleVirtualMidiMessage(midiNote, 0); // velocity 0 = note off
+                }
+            } else {
+                // Trigger mode
+                const keyIdx = state.keyBindings.indexOf(e.key.toUpperCase());
+                if (keyIdx !== -1 && keyIdx < state.slices.length) {
+                    handleVirtualMidiMessage(state.noteOffset + keyIdx, 0); // velocity 0 = note off
                 }
             }
         });
@@ -2928,6 +3114,77 @@
             }
         }
 
+        function handleVirtualMidiMessage(note, velocity) {
+            // Simula uma mensagem MIDI do teclado virtual
+            const cmd = velocity > 0 ? 0x90 : 0x80;
+            
+            // Visual feedback - highlight the key being pressed
+            if (state.midiMode === 'sampler') {
+                const pianoKeyMap = {
+                    60: 'A', 61: 'W', 62: 'S', 63: 'E', 64: 'D', 65: 'F',
+                    66: 'T', 67: 'G', 68: 'Y', 69: 'H', 70: 'U', 71: 'J',
+                    72: 'K', 73: 'O', 74: 'L'
+                };
+                const keyChar = pianoKeyMap[note];
+                if (keyChar) {
+                    const buttons = document.querySelectorAll('.key');
+                    buttons.forEach(btn => {
+                        if (btn.textContent.toUpperCase().startsWith(keyChar)) {
+                            if (velocity > 0) {
+                                btn.classList.add('active');
+                            } else {
+                                btn.classList.remove('active');
+                            }
+                        }
+                    });
+                }
+            }
+            
+            if (state.midiMode === 'trigger') {
+                // TRIGGER MODE
+                const relativeNote = note - state.noteOffset;
+                
+                if (cmd === 0x90 && velocity > 0) {
+                    if (relativeNote >= 0 && relativeNote < state.slices.length) {
+                        if (!state.pressedKeys[relativeNote]) {
+                            state.pressedKeys[relativeNote] = true;
+                            playSlice(relativeNote);
+                        }
+                    }
+                } else if (cmd === 0x80 || (cmd === 0x90 && velocity === 0)) {
+                    if (relativeNote >= 0 && relativeNote < state.slices.length) {
+                        state.pressedKeys[relativeNote] = false;
+                        
+                        const slice = state.slices[relativeNote];
+                        if (slice && (slice.mode === 'loop' || slice.mode === 'shot')) {
+                            stopSlice(relativeNote);
+                        }
+                    }
+                }
+            } else if (state.midiMode === 'sampler') {
+                // SAMPLER MODE
+                const selectedSlice = state.selectedSliceForEditing;
+                if (!selectedSlice) return;
+                
+                const sliceIdx = state.slices.indexOf(selectedSlice);
+                if (sliceIdx === -1) return;
+                
+                if (cmd === 0x90 && velocity > 0) {
+                    const keyId = `sampler_${note}`;
+                    if (!state.pressedKeys[keyId]) {
+                        state.pressedKeys[keyId] = true;
+                        playSliceSampler(sliceIdx, note);
+                    }
+                } else if (cmd === 0x80 || (cmd === 0x90 && velocity === 0)) {
+                    const keyId = `sampler_${note}`;
+                    state.pressedKeys[keyId] = false;
+                    
+                    // Always stop when note off
+                    stopSliceSampler(sliceIdx, note);
+                }
+            }
+        }
+
         function handleMidiMessage(msg) {
             const [cmd, note, velocity] = msg.data;
             
@@ -2984,6 +3241,8 @@
                 } else if (cmd === 0x80 || (cmd === 0x90 && velocity === 0)) {
                     const keyId = `sampler_${note}`;
                     state.pressedKeys[keyId] = false;
+                    
+                    // Always stop when note off, regardless of loop mode
                     stopSliceSampler(sliceIdx, note);
                 }
             }
@@ -2995,6 +3254,12 @@
             
             const slice = state.slices[sliceIdx];
             if (!slice || !slice.enabled) return;
+
+            // Se já há uma source a tocar para este midiNote, para-a primeiro
+            const key = `sampler_${midiNote}`;
+            if (state.playingSources[key]) {
+                stopSliceSampler(sliceIdx, midiNote);
+            }
 
             const ctx = initAudioContext();
             const source = ctx.createBufferSource();
@@ -3028,17 +3293,24 @@
             panNode.connect(reverbDryGainNode);
             panNode.connect(reverbWetGainNode);
             
+            // Aplicar modo loop se a slice está em modo loop
+            if (slice.mode === 'loop') {
+                source.loop = true;
+                source.loopStart = 0;
+                source.loopEnd = sliceBuffer.duration;
+            }
+            
             source.start(ctx.currentTime, 0);
             
             // Armazenar com key única por nota MIDI
-            const key = `sampler_${midiNote}`;
             state.playingSources[key] = {
                 source,
                 gainNode,
-                mode: 'sampler',
+                mode: slice.mode,
                 ctx: ctx,
                 fadeOutTime: fadeOutTime,
-                midiNote: midiNote
+                midiNote: midiNote,
+                sliceIdx: sliceIdx
             };
         }
 
@@ -3085,6 +3357,7 @@
 
                 const row = document.createElement('div');
                 row.className = 'sequencer-row';
+                row.style.setProperty('--step-count', steps);
 
                 const label = document.createElement('div');
                 label.className = 'sequencer-label';
@@ -3197,27 +3470,82 @@
             scene.bpm       = state.bpm;
         }
 
+
         function updateSceneButtons() {
             const container = document.getElementById('sceneBtns');
             if (!container) return;
             Array.from(container.children).forEach((btn, i) => {
-                btn.style.background    = i === state.currentScene  ? 'var(--accent)'  : 
-                                          i === state.pendingScene  ? 'var(--warning)' : 'var(--bg-control)';
-                btn.style.borderColor   = i === state.currentScene  ? 'var(--accent)'  :
-                                          i === state.pendingScene  ? 'var(--warning)' : 'var(--border)';
-                btn.style.color         = (i === state.currentScene || i === state.pendingScene) ? '#fff' : 'var(--text-secondary)';
+                // Check if scene has any pattern data
+                const scene = state.scenes[i];
+                const hasPatternData = Object.keys(scene.pattern).length > 0 && 
+                                      Object.values(scene.pattern).some(slicePattern => 
+                                          Object.values(slicePattern).some(step => step !== 'empty')
+                                      );
+                
+                // Color logic:
+                // - Current scene: Orange (--warning)
+                // - Pending scene: Blue with glow (animado)
+                // - Filled scene (not current/pending): Blue
+                // - Empty scene: Dark grey (--bg-control)
+                if (i === state.currentScene) {
+                    // Active scene - Orange
+                    btn.style.background = 'var(--warning)';
+                    btn.style.borderColor = 'var(--warning)';
+                    btn.style.color = '#000';
+                    btn.style.boxShadow = 'none';
+                } else if (i === state.pendingScene) {
+                    // Pending scene - Blue with glow
+                    btn.style.background = 'var(--accent)';
+                    btn.style.borderColor = 'var(--accent)';
+                    btn.style.color = '#fff';
+                    btn.style.boxShadow = '0 0 15px rgba(99, 102, 241, 0.8), inset 0 0 8px rgba(99, 102, 241, 0.3)';
+                } else if (hasPatternData) {
+                    // Filled but not active/pending - Blue
+                    btn.style.background = 'var(--accent)';
+                    btn.style.borderColor = 'var(--accent)';
+                    btn.style.color = '#fff';
+                    btn.style.boxShadow = 'none';
+                } else {
+                    // Empty - Dark grey
+                    btn.style.background = 'var(--bg-control)';
+                    btn.style.borderColor = 'var(--border)';
+                    btn.style.color = 'var(--text-secondary)';
+                    btn.style.boxShadow = 'none';
+                }
             });
         }
 
         function queueScene(sceneIdx) {
             if (sceneIdx === state.currentScene) return;
+            
             if (!state.isSequencerPlaying) {
-                saveCurrentScene();
+                // Not playing: just load the scene without copying
                 loadScene(sceneIdx);
+                updateSceneButtons();
                 return;
             }
+            
+            // Playing: queue the scene to change at the next cycle
             state.pendingScene = sceneIdx;
             document.getElementById('pendingSceneIndicator').textContent = sceneIdx + 1;
+            updateSceneButtons();
+        }
+
+        function copyScene(sceneIdx) {
+            if (sceneIdx === state.currentScene) return;
+            
+            // Copy current scene to target scene
+            const targetScene = state.scenes[sceneIdx];
+            const currentScene = state.scenes[state.currentScene];
+            
+            // Deep copy pattern data
+            targetScene.pattern = JSON.parse(JSON.stringify(currentScene.pattern));
+            targetScene.mute = JSON.parse(JSON.stringify(currentScene.mute));
+            targetScene.solo = JSON.parse(JSON.stringify(currentScene.solo));
+            targetScene.stepCount = currentScene.stepCount;
+            targetScene.bpm = currentScene.bpm;
+            
+            // Update visual feedback
             updateSceneButtons();
         }
 
@@ -3230,7 +3558,16 @@
                 btn.className = 'btn';
                 btn.textContent = i + 1;
                 btn.style.cssText = 'width:32px; height:32px; padding:0; font-size:13px; font-weight:700;';
-                btn.addEventListener('click', () => { saveCurrentScene(); queueScene(i); });
+                btn.addEventListener('click', (e) => { 
+                    saveCurrentScene();
+                    if (e.shiftKey) {
+                        // Shift+Click: copy scene
+                        copyScene(i);
+                    } else {
+                        // Regular click: just queue/load scene
+                        queueScene(i);
+                    }
+                });
                 container.appendChild(btn);
             }
             updateSceneButtons();
@@ -3300,18 +3637,36 @@
 
                     const nextPos = (state.sequencerPosition + 1) % state.stepCount;
 
-                    // End of cycle — check for pending scene
-                    if (nextPos === 0 && state.pendingScene !== null) {
+                    // End of cycle — check for pending scene or scene playback queue
+                    if (nextPos === 0) {
                         saveCurrentScene();
-                        const sceneToLoad = state.pendingScene;
-                        // Schedule scene switch at end of this cycle
-                        const switchDelay = Math.max(0, (nextStepTime - ctx.currentTime) * 1000);
-                        setTimeout(() => {
-                            if (state.isSequencerPlaying) {
-                                loadScene(sceneToLoad);
-                                initSequencerGrid();
-                            }
-                        }, switchDelay);
+                        
+                        // Scene playback queue takes priority
+                        if (state.scenePlaybackQueue && state.scenePlaybackQueue.length > 0) {
+                            // Move to next scene in queue
+                            state.scenePlaybackIndex = (state.scenePlaybackIndex + 1) % state.scenePlaybackQueue.length;
+                            const nextSceneIdx = state.scenePlaybackQueue[state.scenePlaybackIndex];
+                            
+                            // Schedule scene switch at end of this cycle
+                            const switchDelay = Math.max(0, (nextStepTime - ctx.currentTime) * 1000);
+                            setTimeout(() => {
+                                if (state.isSequencerPlaying) {
+                                    loadScene(nextSceneIdx);
+                                    initSequencerGrid();
+                                }
+                            }, switchDelay);
+                        } else if (state.pendingScene !== null) {
+                            // Regular pending scene
+                            const sceneToLoad = state.pendingScene;
+                            // Schedule scene switch at end of this cycle
+                            const switchDelay = Math.max(0, (nextStepTime - ctx.currentTime) * 1000);
+                            setTimeout(() => {
+                                if (state.isSequencerPlaying) {
+                                    loadScene(sceneToLoad);
+                                    initSequencerGrid();
+                                }
+                            }, switchDelay);
+                        }
                     }
 
                     state.sequencerPosition = nextPos;
@@ -3326,16 +3681,88 @@
         function stopSequencer() {
             state.isSequencerPlaying = false;
             state.sequencerPosition = 0;
+            state.scenePlaybackQueue = [];
+            state.scenePlaybackIndex = 0;
             clearTimeout(state.sequencerIntervalId);
             document.getElementById('seqPlayBtn').classList.remove('active');
+            const scenePlayBtn = document.getElementById('scenePlayBtn');
+            scenePlayBtn.style.background = 'var(--bg-control)';
+            scenePlayBtn.style.borderColor = 'var(--border)';
+            scenePlayBtn.style.color = 'var(--text-secondary)';
             document.querySelectorAll('.sequencer-step').forEach(step => {
                 step.classList.remove('playing');
             });
         }
 
+        function startScenePlayback() {
+            // Get all filled scenes in order
+            const filledScenes = [];
+            for (let i = 0; i < 8; i++) {
+                const scene = state.scenes[i];
+                const hasPatternData = Object.keys(scene.pattern).length > 0 && 
+                                      Object.values(scene.pattern).some(slicePattern => 
+                                          Object.values(slicePattern).some(step => step !== 'empty')
+                                      );
+                if (hasPatternData) {
+                    filledScenes.push(i);
+                }
+            }
+
+            // If no filled scenes, don't start
+            if (filledScenes.length === 0) {
+                alert('No filled scenes to play');
+                return;
+            }
+
+            // Start sequencer and set up scene cycling
+            state.scenePlaybackQueue = filledScenes;
+            state.scenePlaybackIndex = 0;
+            
+            // Load first scene and start playing
+            const firstScene = filledScenes[0];
+            saveCurrentScene();
+            loadScene(firstScene);
+            startSequencer();
+            
+            // Update button state
+            const scenePlayBtn = document.getElementById('scenePlayBtn');
+            scenePlayBtn.style.background = 'var(--accent)';
+            scenePlayBtn.style.borderColor = 'var(--accent)';
+            scenePlayBtn.style.color = '#fff';
+        }
+
+        function clearSequencer() {
+            // Confirm action
+            if (!confirm('Clear all steps in current scene?')) {
+                return;
+            }
+
+            // Stop if playing
+            if (state.isSequencerPlaying) {
+                stopSequencer();
+            }
+
+            // Clear pattern for all slices
+            state.slices.forEach((slice, idx) => {
+                state.sequencerPattern[idx] = {};
+                for (let i = 0; i < state.stepCount; i++) {
+                    state.sequencerPattern[idx][i] = 'empty';
+                }
+            });
+
+            // Save cleared scene
+            saveCurrentScene();
+
+            // Refresh UI
+            initSequencerGrid();
+            updateSceneButtons();
+        }
+
         document.getElementById('seqPlayBtn').addEventListener('click', startSequencer);
         document.getElementById('seqStopBtn').addEventListener('click', stopSequencer);
+        document.getElementById('seqClearBtn').addEventListener('click', clearSequencer);
         document.getElementById('seqExportBtn').addEventListener('click', exportSequencerLoop);
+        document.getElementById('scenePlayBtn').addEventListener('click', startScenePlayback);
 
         // === SEQUENCER EXPORT ===
         function exportSequencerLoop() {
@@ -3674,8 +4101,10 @@
                 document.getElementById('decimMixVal').textContent = state.effects.decimator.mix;
                 
                 document.getElementById('reverbMode').value = state.effects.reverb.mode;
-                document.getElementById('reverbMix').value = state.effects.reverb.mix;
-                document.getElementById('reverbMixVal').textContent = state.effects.reverb.mix;
+                // Convert back from 0-50 range to 0-100 UI range
+                const reverbUIValue = (state.effects.reverb.mix / 50) * 100;
+                document.getElementById('reverbMix').value = reverbUIValue;
+                document.getElementById('reverbMixVal').textContent = Math.round(reverbUIValue);
                 
                 document.getElementById('effectsBypass').checked = state.effects.bypass;
                 document.querySelector('.effects-panel').style.opacity = state.effects.bypass ? '0.5' : '1';
@@ -4104,6 +4533,19 @@
             document.addEventListener('DOMContentLoaded', initKnobs);
         } else {
             initKnobs();
+        }
+
+        // === SERVICE WORKER REGISTRATION ===
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then((reg) => {
+                        console.log('✅ Service Worker registered:', reg.scope);
+                    })
+                    .catch((err) => {
+                        console.warn('❌ Service Worker registration failed:', err);
+                    });
+            });
         }
     </script>
 </body>

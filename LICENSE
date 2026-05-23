@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2024 David Marques
+Copyright (c) 2025 David Marques / monco.io
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,33 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-## Third-Party Dependencies
-
-SLICER uses the following open-source libraries:
-
-### JSZip
-- **License**: MIT or GPLv3 (user's choice)
-- **URL**: https://stuk.github.io/jszip/
-- **Purpose**: Project save/load functionality (ZIP compression)
-
-All dependencies are loaded from CDN (no installation required) and are subject
-to their respective licenses.
-
----
-
-## Credits
-
-**Design & Development**: David Marques  
-**Built with**: Anthropic Claude (Vibe Coding)
-
-Created through collaborative prompt engineering and iterative refinement using
-Claude's code generation and design capabilities. This represents a modern
-approach to tool creation leveraging AI-assisted development practices.
-
----
-
-**Released**: January 2025  
-**Version**: 1.0

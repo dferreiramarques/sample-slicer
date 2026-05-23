@@ -1,39 +1,33 @@
-// SLICER Service Worker
-// Caches all assets for offline functionality
+// Spliiice Service Worker
+// Enables offline functionality and caching for PWA
 
-const CACHE_NAME = 'slicer-v2.0';
-const ASSETS_TO_CACHE = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'
+const CACHE_NAME = 'spliiice-v1';
+const urlsToCache = [
+  './',
+  './index.html',
+  './manifest.json'
 ];
 
-// Install event - cache assets
+// Install event - cache essential files
 self.addEventListener('install', (event) => {
-  console.log('Service Worker installing...');
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('Caching app assets');
-      return cache.addAll(ASSETS_TO_CACHE).catch((err) => {
-        console.warn('Some assets could not be cached:', err);
-        // Continue even if some assets fail
-        return Promise.resolve();
+      return cache.addAll(urlsToCache).catch(() => {
+        // If cache fails, just proceed
+        console.warn('Service Worker: Could not cache all files');
       });
     })
   );
   self.skipWaiting();
 });
 
-// Activate event - clean old caches
+// Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
-  console.log('Service Worker activating...');
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== CACHE_NAME) {
-            console.log('Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
@@ -45,46 +39,44 @@ self.addEventListener('activate', (event) => {
 
 // Fetch event - serve from cache, fallback to network
 self.addEventListener('fetch', (event) => {
-  // Skip non-GET requests
+  // Only handle GET requests
   if (event.request.method !== 'GET') {
     return;
   }
 
   event.respondWith(
     caches.match(event.request).then((response) => {
-      // Return cached response if available
+      // Return cached version if available
       if (response) {
-        console.log('Serving from cache:', event.request.url);
         return response;
       }
 
-      // Otherwise fetch from network
-      return fetch(event.request)
-        .then((response) => {
-          // Cache successful responses for next time
-          if (response.ok && event.request.url.startsWith('http')) {
-            const responseToCache = response.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseToCache);
-            });
-          }
+      // Try to fetch from network
+      return fetch(event.request).then((response) => {
+        // Don't cache non-successful responses
+        if (!response || response.status !== 200 || response.type === 'error') {
           return response;
-        })
-        .catch((error) => {
-          console.warn('Fetch failed, offline?', error);
-          // Return offline page or cached response
-          return caches.match('/index.html');
+        }
+
+        // Cache successful responses
+        const responseToCache = response.clone();
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(event.request, responseToCache);
         });
+
+        return response;
+      }).catch(() => {
+        // Return offline page or cached version
+        return caches.match(event.request).then((cachedResponse) => {
+          return cachedResponse || new Response('Offline - Please check your connection', {
+            status: 503,
+            statusText: 'Service Unavailable',
+            headers: new Headers({
+              'Content-Type': 'text/plain'
+            })
+          });
+        });
+      });
     })
   );
-});
-
-// Background sync for any future features
-self.addEventListener('sync', (event) => {
-  if (event.tag === 'sync-projects') {
-    event.waitUntil(
-      // Sync projects when connection restored
-      Promise.resolve()
-    );
-  }
 });

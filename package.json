@@ -1,0 +1,32 @@
+{
+  "name": "spliiice",
+  "version": "1.0.0",
+  "description": "Professional browser-based sample slicer and 16-step sequencer with effects chain",
+  "main": "index.html",
+  "scripts": {
+    "start": "http-server -p 8000 -o",
+    "serve": "http-server -p 8000",
+    "dev": "http-server -p 8000 -c-1"
+  },
+  "keywords": [
+    "audio",
+    "sample-slicer",
+    "sequencer",
+    "music-production",
+    "web-audio",
+    "pwa"
+  ],
+  "author": "David Marques <hello@monco.io>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dmarques/spliiice.git"
+  },
+  "homepage": "https://spliiice.monco.io",
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
