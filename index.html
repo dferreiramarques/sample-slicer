@@ -1425,31 +1425,7 @@
                         </div>
                     </div>
 
-                    <!-- OVERDRIVE PEDAL -->
-                    <div class="pedal orange" id="overPedal">
-                        <div class="pedal-screw tl"></div>
-                        <div class="pedal-screw tr"></div>
-                        <div class="pedal-screw bl"></div>
-                        <div class="pedal-screw br"></div>
-                        <div class="pedal-led on" id="overToggle" onclick="toggleEffect('overdrive', 'overToggle')"></div>
-                        <div class="pedal-title">Drive</div>
-                        <div class="pedal-knobs">
-                            <div class="knob-container">
-                                <div class="knob" data-target="overDrive" data-min="0" data-max="100" data-value="0"></div>
-                                <input type="range" id="overDrive" min="0" max="100" step="1" value="0" style="display: none;">
-                                <div class="knob-value"><span id="overDriveVal">0</span>%</div>
-                                <div class="knob-label">Drive</div>
-                            </div>
-                            <div class="knob-container">
-                                <div class="knob" data-target="overMix" data-min="0" data-max="100" data-value="0"></div>
-                                <input type="range" id="overMix" min="0" max="100" step="1" value="0" style="display: none;">
-                                <div class="knob-value"><span id="overMixVal">0</span>%</div>
-                                <div class="knob-label">Mix</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- DECIMATOR PEDAL -->
+                    <!-- DECIMATOR PEDAL (agora em 2º lugar) -->
                     <div class="pedal green" id="decimPedal">
                         <div class="pedal-screw tl"></div>
                         <div class="pedal-screw tr"></div>
@@ -1468,6 +1444,30 @@
                                 <div class="knob" data-target="decimMix" data-min="0" data-max="100" data-value="0"></div>
                                 <input type="range" id="decimMix" min="0" max="100" step="1" value="0" style="display: none;">
                                 <div class="knob-value"><span id="decimMixVal">0</span>%</div>
+                                <div class="knob-label">Mix</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- OVERDRIVE PEDAL (agora em 3º lugar) -->
+                    <div class="pedal orange" id="overPedal">
+                        <div class="pedal-screw tl"></div>
+                        <div class="pedal-screw tr"></div>
+                        <div class="pedal-screw bl"></div>
+                        <div class="pedal-screw br"></div>
+                        <div class="pedal-led on" id="overToggle" onclick="toggleEffect('overdrive', 'overToggle')"></div>
+                        <div class="pedal-title">Drive</div>
+                        <div class="pedal-knobs">
+                            <div class="knob-container">
+                                <div class="knob" data-target="overDrive" data-min="0" data-max="100" data-value="0"></div>
+                                <input type="range" id="overDrive" min="0" max="100" step="1" value="0" style="display: none;">
+                                <div class="knob-value"><span id="overDriveVal">0</span>%</div>
+                                <div class="knob-label">Drive</div>
+                            </div>
+                            <div class="knob-container">
+                                <div class="knob" data-target="overMix" data-min="0" data-max="100" data-value="0"></div>
+                                <input type="range" id="overMix" min="0" max="100" step="1" value="0" style="display: none;">
+                                <div class="knob-value"><span id="overMixVal">0</span>%</div>
                                 <div class="knob-label">Mix</div>
                             </div>
                         </div>
@@ -2595,7 +2595,7 @@
             triggerBtn.style.background = '';
             triggerBtn.style.color = '';
             triggerBtn.style.borderColor = '';
-            document.getElementById('midiModeHint').textContent = 'Selected slice plays at different pitches';
+            document.getElementById('midiModeHint').textContent = 'Selected slice plays at different pitches (use MIDI or keyboard QWERTY)';
             // Desabilitar teclado virtual em sampler mode
             const keyboardBlack = document.getElementById('keyboard-black');
             const keyboardWhite = document.getElementById('keyboard-white');
