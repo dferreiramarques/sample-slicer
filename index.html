@@ -1682,10 +1682,67 @@
             reverbDryGainNode.gain.value = (100 - mix) / 100;
         }
 
+        // 🆕 === WAVEFORM CACHE (Pre-computed peaks for elastic zoom) ===
+        function generateWaveformCache(audioBuffer, pixelsPerLevel = 2) {
+            const rawData = audioBuffer.getChannelData(0);
+            const cache = {
+                duration: audioBuffer.duration,
+                sampleRate: audioBuffer.sampleRate,
+                levels: {}
+            };
+
+            // Gerar múltiplos níveis de detalhe
+            const zoomLevels = [1, 2, 4, 8, 16];
+
+            zoomLevels.forEach(zoomLevel => {
+                // Usar resolução dinâmica: mais samples para zoom baixo
+                const targetSamples = Math.min(
+                    4096,  // Max 4096 samples por nível (plenty of detail)
+                    Math.floor(window.innerWidth * pixelsPerLevel * zoomLevel)
+                );
+                
+                const downsample = Math.max(1, Math.floor(rawData.length / targetSamples));
+                const samples = Math.floor(rawData.length / downsample);
+                const peaks = [];
+
+                // RMS + Min/Max para cada pixel (método melhorado)
+                for (let i = 0; i < samples; i++) {
+                    let rms = 0, minVal = 0, maxVal = 0, count = 0;
+                    
+                    // Janela maior para RMS mais suave
+                    const rmsWindow = Math.max(256, Math.floor(downsample * 8));
+
+                    for (let j = 0; j < rmsWindow; j++) {
+                        const idx = Math.floor(i * downsample + j * (downsample / rmsWindow));
+                        if (idx >= 0 && idx < rawData.length) {
+                            const val = rawData[Math.floor(idx)];
+                            rms += val * val;
+                            minVal = Math.min(minVal, val);
+                            maxVal = Math.max(maxVal, val);
+                            count++;
+                        }
+                    }
+                    
+                    rms = count > 0 ? Math.sqrt(rms / count) : 0;
+                    
+                    peaks.push({
+                        rms: rms,
+                        min: minVal,
+                        max: maxVal
+                    });
+                }
+
+                cache.levels[`zoom${zoomLevel}`] = peaks;
+            });
+
+            return cache;
+        }
+
         // === CORE STATE ===
         const state = {
             audioBuffer: null,
             audioContext: null,
+            waveformCache: null, // 🆕 Pre-computed waveform peaks para zoom elástico
             slices: [],
             selectedSlice: null,
             selectedSliceForEditing: null, // Slice selecionada para editar in/out
@@ -1779,6 +1836,10 @@
             
             try {
                 state.audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+                
+                // 🆕 Gerar cache de waveform para zoom elástico
+                state.waveformCache = generateWaveformCache(state.audioBuffer);
+                
                 updateSampleInfo(file.name);
                 drawWaveform();
                 state.slices = [];
@@ -1972,74 +2033,191 @@
         const canvasCtx = canvas.getContext('2d');
 
         function drawWaveform() {
-            if (!state.audioBuffer) {
-                console.warn('drawWaveform: no audioBuffer');
-                return;
-            }
+            if (!state.audioBuffer) return;
 
             const container = document.querySelector('.waveform-container');
             const clientWidth = container.clientWidth;
             const clientHeight = container.clientHeight;
 
-            // If layout hasn't happened yet, retry on next frame
             if (!clientWidth || !clientHeight) {
-                console.warn('drawWaveform: container has no size, retrying...');
                 requestAnimationFrame(() => drawWaveform());
                 return;
             }
 
             const height = clientHeight;
-            const baseWidth = clientWidth;
-            const width = baseWidth * state.zoom;
-
-            canvas.width = width;
+            // 🆕 Canvas width = viewport width (não afetado por zoom)
+            const viewportWidth = clientWidth;
+            
+            canvas.width = viewportWidth;
             canvas.height = height;
 
-            console.log('drawWaveform: canvas', width, 'x', height, '| duration', state.audioBuffer.duration);
-
-            const rawData = state.audioBuffer.getChannelData(0);
-            console.log('rawData length:', rawData.length);
-            console.log('rawData first 10 values:', Array.from(rawData.slice(0, 10)));
-            
-            // Downsampling bem balanceado
-            const downsample = Math.max(1, Math.floor(rawData.length / width));
-            const samples = Math.floor(rawData.length / downsample);
-            
-            console.log('Downsampling:', downsample, '| Samples to render:', samples);
-
-            // Usar cor hex em vez de CSS variable
+            // Background
             canvasCtx.fillStyle = '#252f3f';
-            canvasCtx.fillRect(0, 0, width, height);
-            console.log('✅ Background filled');
+            canvasCtx.fillRect(0, 0, viewportWidth, height);
 
-            // Get current master volume
+            // 🆕 Se temos cache, renderiza a partir dele
+            if (state.waveformCache) {
+                renderWaveformFromCache(viewportWidth, height);
+            } else {
+                renderWaveformDirect(viewportWidth, height);
+            }
+
+            // Draw slices
+            drawSlices();
+        }
+
+        // 🆕 Renderizar com zoom horizontal (timeline stretch)
+        function renderWaveformFromCache(viewportWidth, height) {
+            if (!state.waveformCache || !state.waveformCache.levels) return;
+
             const masterVolume = parseFloat(document.getElementById('masterVolume').value);
-            console.log('Master volume:', masterVolume);
 
-            // Draw waveform com volume dinâmico
-            canvasCtx.strokeStyle = 'rgba(99, 102, 241, 0.8)';
-            canvasCtx.lineWidth = 1.5;
+            // 🆕 Canvas width actual com zoom
+            const canvasWidth = viewportWidth * state.zoom;
+
+            // Criar um canvas off-screen para desenhar a waveform completa
+            const offscreenCanvas = document.createElement('canvas');
+            offscreenCanvas.width = canvasWidth;
+            offscreenCanvas.height = height;
+            const offCtx = offscreenCanvas.getContext('2d');
+
+            // Background
+            offCtx.fillStyle = '#252f3f';
+            offCtx.fillRect(0, 0, canvasWidth, height);
+
+            // 🆕 Usar o nível de zoom mais apropriado do cache
+            const zoomLevel = Math.max(1, Math.floor(state.zoom));
+            const cacheKey = `zoom${Math.min(zoomLevel, 16)}`;
+            const peaks = state.waveformCache.levels[cacheKey] || state.waveformCache.levels.zoom1;
+
+            if (!peaks || peaks.length === 0) return;
+
+            // === FILL AREA ===
+            const gradient = offCtx.createLinearGradient(0, 0, 0, height);
+            gradient.addColorStop(0, 'rgba(99, 102, 241, 0.3)');
+            gradient.addColorStop(0.5, 'rgba(99, 102, 241, 0.15)');
+            gradient.addColorStop(1, 'rgba(99, 102, 241, 0.3)');
+
+            offCtx.fillStyle = gradient;
+            offCtx.beginPath();
+            offCtx.moveTo(0, height / 2);
+
+            // Parte de cima
+            for (let x = 0; x < canvasWidth; x++) {
+                const peakIdx = Math.floor((x / canvasWidth) * peaks.length);
+                const peak = peaks[Math.min(peakIdx, peaks.length - 1)];
+                const maxVal = peak ? Math.abs(peak.max) * masterVolume : 0;
+                const y = height / 2 - (maxVal * height / 2);
+                offCtx.lineTo(x, y);
+            }
+
+            // Parte de baixo
+            for (let x = canvasWidth - 1; x >= 0; x--) {
+                const peakIdx = Math.floor((x / canvasWidth) * peaks.length);
+                const peak = peaks[Math.min(peakIdx, peaks.length - 1)];
+                const minVal = peak ? Math.abs(peak.min) * masterVolume : 0;
+                const y = height / 2 + (minVal * height / 2);
+                offCtx.lineTo(x, y);
+            }
+
+            offCtx.closePath();
+            offCtx.fill();
+
+            // === RMS ENVELOPE ===
+            offCtx.strokeStyle = 'rgba(99, 102, 241, 0.95)';
+            offCtx.lineWidth = 1.5;
+
+            // Top line
+            offCtx.beginPath();
+            for (let x = 0; x < canvasWidth; x++) {
+                const peakIdx = Math.floor((x / canvasWidth) * peaks.length);
+                const peak = peaks[Math.min(peakIdx, peaks.length - 1)];
+                const rms = peak ? peak.rms * masterVolume : 0;
+                const y = height / 2 - (rms * height / 2);
+
+                if (x === 0) offCtx.moveTo(x, y);
+                else offCtx.lineTo(x, y);
+            }
+            offCtx.stroke();
+
+            // Bottom line
+            offCtx.beginPath();
+            for (let x = 0; x < canvasWidth; x++) {
+                const peakIdx = Math.floor((x / canvasWidth) * peaks.length);
+                const peak = peaks[Math.min(peakIdx, peaks.length - 1)];
+                const rms = peak ? peak.rms * masterVolume : 0;
+                const y = height / 2 + (rms * height / 2);
+
+                if (x === 0) offCtx.moveTo(x, y);
+                else offCtx.lineTo(x, y);
+            }
+            offCtx.stroke();
+
+            // 🆕 Desenhar o canvas off-screen no canvas principal com clipping
+            // Por enquanto, desenha tudo (sem scroll horizontal)
+            canvasCtx.drawImage(offscreenCanvas, 0, 0);
+        }
+
+        // Fallback: renderizar direto do áudio (antigo)
+        function renderWaveformDirect(width, height) {
+            const rawData = state.audioBuffer.getChannelData(0);
+            const downsample = Math.max(1, Math.floor(rawData.length / (width * 2)));
+            const samples = Math.floor(rawData.length / downsample);
+
+            const masterVolume = parseFloat(document.getElementById('masterVolume').value);
+
+            // === RMS ENVELOPE ===
+            canvasCtx.strokeStyle = 'rgba(99, 102, 241, 0.9)';
+            canvasCtx.lineWidth = 2;
             canvasCtx.beginPath();
 
-            let minVal = Infinity, maxVal = -Infinity;
-            
-            for (let i = 0; i < samples; i++) {
-                const index = Math.floor(i * downsample);
-                const value = rawData[index] * masterVolume;
-                minVal = Math.min(minVal, value);
-                maxVal = Math.max(maxVal, value);
-                
+            const rmsWindow = Math.max(128, Math.floor(downsample * 4));
+
+            for (let i = 0; i < samples; i += Math.max(1, Math.floor(samples / width))) {
+                let rms = 0;
+                let count = 0;
+
+                for (let j = i; j < Math.min(i + rmsWindow, samples); j++) {
+                    const idx = Math.floor(j * downsample);
+                    if (idx < rawData.length) {
+                        const val = rawData[idx] * masterVolume;
+                        rms += val * val;
+                        count++;
+                    }
+                }
+                rms = Math.sqrt(rms / Math.max(1, count));
+
                 const x = (i / samples) * width;
-                const y = height / 2 - (value * height / 2);
+                const y = height / 2 - (rms * height / 2);
+
                 if (i === 0) canvasCtx.moveTo(x, y);
                 else canvasCtx.lineTo(x, y);
             }
             canvasCtx.stroke();
-            
-            console.log('✅ Waveform drawn | Min:', minVal, 'Max:', maxVal);
 
-            // Draw slices
-            drawSlices();
+            // === Mini waveform (peaks) ===
+            canvasCtx.strokeStyle = 'rgba(99, 102, 241, 0.4)';
+            canvasCtx.lineWidth = 0.5;
+
+            for (let x = 0; x < width; x++) {
+                const startIdx = Math.floor((x / width) * samples) * downsample;
+                const endIdx = Math.floor(((x + 1) / width) * samples) * downsample;
+
+                let minVal = 0, maxVal = 0;
+                for (let idx = startIdx; idx < Math.min(endIdx, rawData.length); idx += Math.max(1, Math.floor(downsample * 2))) {
+                    const val = rawData[idx] * masterVolume;
+                    minVal = Math.min(minVal, val);
+                    maxVal = Math.max(maxVal, val);
+                }
+
+                const yMin = height / 2 - (minVal * height / 2);
+                const yMax = height / 2 - (maxVal * height / 2);
+
+                canvasCtx.beginPath();
+                canvasCtx.moveTo(x, yMin);
+                canvasCtx.lineTo(x, yMax);
+                canvasCtx.stroke();
+            }
         }
 
         function drawSlices() {
@@ -2819,14 +2997,14 @@
                         <div class="param-slider">
                             <label>Start</label>
                             <input type="range" min="0" max="${maxDuration}" step="0.001" value="${slice.start}"
-                                oninput="updateSliceParam(${idx}, 'start', this.value); drawWaveform(); updatePlayingSliceAudio(${idx});"
+                                oninput="updateSliceParam(${idx}, 'start', this.value); updatePlayingSliceAudio(${idx});"
                                 onchange="updateSliceParam(${idx}, 'start', this.value); drawWaveform(); updatePlayingSliceAudio(${idx});">
                             <span class="param-value">${(slice.start * 1000).toFixed(0)}ms</span>
                         </div>
                         <div class="param-slider">
                             <label>End</label>
                             <input type="range" min="0" max="${maxDuration}" step="0.001" value="${slice.end}"
-                                oninput="updateSliceParam(${idx}, 'end', this.value); drawWaveform(); updatePlayingSliceAudio(${idx});"
+                                oninput="updateSliceParam(${idx}, 'end', this.value); updatePlayingSliceAudio(${idx});"
                                 onchange="updateSliceParam(${idx}, 'end', this.value); drawWaveform(); updatePlayingSliceAudio(${idx});">
                             <span class="param-value">${(slice.end * 1000).toFixed(0)}ms</span>
                         </div>
@@ -4090,7 +4268,8 @@
                     fadeOut: s.fadeOut
                 })),
                 sequencerPattern: state.sequencerPattern,
-                effects: state.effects
+                effects: state.effects,
+                waveformCache: state.waveformCache  // 🆕 Guardar cache pre-computed
             };
 
             zip.file('project.json', JSON.stringify(projectData, null, 2));
@@ -4140,6 +4319,11 @@
                 state.swingAmount = projectData.swingAmount;
                 state.slices = projectData.slices;
                 state.sequencerPattern = projectData.sequencerPattern;
+                
+                // 🆕 Restaurar waveform cache se existir
+                if (projectData.waveformCache) {
+                    state.waveformCache = projectData.waveformCache;
+                }
                 
                 // Restore effects if they exist in the project
                 if (projectData.effects) {
