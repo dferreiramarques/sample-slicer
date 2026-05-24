@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#00ff88">
     <meta name="description" content="Professional browser-based sample slicer and 16-step sequencer with effects chain">
-    <link rel="manifest" href="./manifest.json">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%230a0a0a' width='192' height='192'/><text x='96' y='130' font-family='Consolas, monospace' font-size='140' font-weight='bold' fill='%236366f1' text-anchor='middle'>S</text></svg>">
     <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%230a0a0a' width='192' height='192'/><text x='96' y='130' font-family='Consolas, monospace' font-size='140' font-weight='bold' fill='%236366f1' text-anchor='middle'>S</text></svg>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1408,7 +1407,7 @@
                         <div class="pedal-screw tr"></div>
                         <div class="pedal-screw bl"></div>
                         <div class="pedal-screw br"></div>
-                        <div class="pedal-led on" id="compToggle" onclick="state.effects.compressor.enabled = !state.effects.compressor.enabled; this.classList.toggle('on');"></div>
+                        <div class="pedal-led on" id="compToggle" onclick="toggleEffect('compressor', 'compToggle')"></div>
                         <div class="pedal-title">Comp</div>
                         <div class="pedal-knobs">
                             <div class="knob-container">
@@ -1432,7 +1431,7 @@
                         <div class="pedal-screw tr"></div>
                         <div class="pedal-screw bl"></div>
                         <div class="pedal-screw br"></div>
-                        <div class="pedal-led on" id="overToggle" onclick="state.effects.overdrive.enabled = !state.effects.overdrive.enabled; this.classList.toggle('on');"></div>
+                        <div class="pedal-led on" id="overToggle" onclick="toggleEffect('overdrive', 'overToggle')"></div>
                         <div class="pedal-title">Drive</div>
                         <div class="pedal-knobs">
                             <div class="knob-container">
@@ -1456,7 +1455,7 @@
                         <div class="pedal-screw tr"></div>
                         <div class="pedal-screw bl"></div>
                         <div class="pedal-screw br"></div>
-                        <div class="pedal-led on" id="decimToggle" onclick="state.effects.decimator.enabled = !state.effects.decimator.enabled; this.classList.toggle('on');"></div>
+                        <div class="pedal-led on" id="decimToggle" onclick="toggleEffect('decimator', 'decimToggle')"></div>
                         <div class="pedal-title">Bits</div>
                         <div class="pedal-knobs">
                             <div class="knob-container">
@@ -1480,7 +1479,7 @@
                         <div class="pedal-screw tr"></div>
                         <div class="pedal-screw bl"></div>
                         <div class="pedal-screw br"></div>
-                        <div class="pedal-led on" id="reverbToggle" onclick="state.effects.reverb.enabled = !state.effects.reverb.enabled; this.classList.toggle('on');"></div>
+                        <div class="pedal-led on" id="reverbToggle" onclick="toggleEffect('reverb', 'reverbToggle')"></div>
                         <div class="pedal-title">Reverb</div>
                         <div class="pedal-knobs">
                             <div class="knob-container" style="justify-content: center;">
@@ -1671,6 +1670,12 @@
 
         function updateReverbMix() {
             if (!reverbWetGainNode || !reverbDryGainNode) return;
+            
+            // Se reverb está desabilidato, set wet gain to 0
+            if (!state.effects.reverb.enabled) {
+                reverbWetGainNode.gain.value = 0;
+                return;
+            }
             
             const mix = state.effects.reverb.mix || 0;
             reverbWetGainNode.gain.value = mix / 100;
@@ -1899,7 +1904,68 @@
         document.getElementById('effectsBypass').addEventListener('change', (e) => {
             state.effects.bypass = e.target.checked;
             document.querySelector('.effects-panel').style.opacity = e.target.checked ? '0.5' : '1';
+            
+            // Se bypass está ON, desabilita o reverb (set wet gain to 0)
+            if (e.target.checked && reverbWetGainNode) {
+                reverbWetGainNode.gain.value = 0;
+            } else if (!e.target.checked && reverbWetGainNode) {
+                // Se bypass desligou, restaura o mix do reverb
+                updateReverbMix();
+            }
+            
+            // Atualizar visual de todos os pedais quando bypass muda
+            updateEffectsPedalLEDs();
         });
+
+        // Função para atualizar LEDs de todos os efeitos baseado no bypass
+        function updateEffectsPedalLEDs() {
+            const isBypassed = state.effects.bypass;
+            
+            // Mapeamento: ID do LED → propriedade do efeito
+            const toggleMap = {
+                'compToggle': 'compressor',
+                'overToggle': 'overdrive',
+                'decimToggle': 'decimator',
+                'reverbToggle': 'reverb'
+            };
+            
+            // LEDs: se bypass está ON, todos os pedais ficam "off" visualmente
+            Object.entries(toggleMap).forEach(([ledId, effectName]) => {
+                const led = document.getElementById(ledId);
+                if (led) {
+                    if (isBypassed) {
+                        led.classList.remove('on'); // LED desligado (cinzento)
+                    } else {
+                        // Restaurar estado individual do efeito
+                        if (state.effects[effectName]?.enabled) {
+                            led.classList.add('on'); // LED aceso
+                        } else {
+                            led.classList.remove('on'); // LED desligado
+                        }
+                    }
+                }
+            });
+        }
+
+        // Função para toggle de efeitos individuais respeitando bypass
+        function toggleEffect(effectName, ledId) {
+            // Se bypass está ON, não permite toggle
+            if (state.effects.bypass) return;
+            
+            // Toggle do efeito
+            state.effects[effectName].enabled = !state.effects[effectName].enabled;
+            
+            // Se é reverb, atualizar os nodes de áudio
+            if (effectName === 'reverb') {
+                updateReverbMix();
+            }
+            
+            // Toggle do LED
+            const led = document.getElementById(ledId);
+            if (led) {
+                led.classList.toggle('on');
+            }
+        }
 
         // === WAVEFORM RENDERING ===
         const canvas = document.getElementById('waveform');
@@ -4533,19 +4599,6 @@
             document.addEventListener('DOMContentLoaded', initKnobs);
         } else {
             initKnobs();
-        }
-
-        // === SERVICE WORKER REGISTRATION ===
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./service-worker.js')
-                    .then((reg) => {
-                        console.log('✅ Service Worker registered:', reg.scope);
-                    })
-                    .catch((err) => {
-                        console.warn('❌ Service Worker registration failed:', err);
-                    });
-            });
         }
     </script>
 </body>
